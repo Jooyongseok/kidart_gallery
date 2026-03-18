@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>📖 동화 생성 AI 테스트</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{--bg:#0e0e1a;--bg2:#161628;--sf:rgba(30,30,55,.7);--gl:rgba(255,255,255,.10);--pri:#7c5cfc;--pri-l:#a78bfa;--pri-g:rgba(124,92,252,.35);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--txt:#eee8ff;--txt-m:#9a92b8;--txt-d:#5c5680;--r:14px;--f:'Noto Sans KR','Outfit',sans-serif;--fd:'Outfit',sans-serif}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:var(--f);background:var(--bg);color:var(--txt);min-height:100vh;line-height:1.6;padding:20px}
+    h1,h2,h3{font-family:var(--fd)}
+    .container{max-width:1200px;margin:0 auto}
+
+    .header{text-align:center;margin-bottom:24px}
+    .header h1{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#7c5cfc,#f472b6,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
+    .header p{color:var(--txt-m);font-size:.88rem}
+
+    .card{background:var(--sf);border:1px solid var(--gl);border-radius:var(--r);padding:18px;margin-bottom:16px;backdrop-filter:blur(12px)}
+    .card h3{font-size:.95rem;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+
+    /* Setup row */
+    .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media(max-width:768px){.setup-grid{grid-template-columns:1fr}}
+
+    .api-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .inp{padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid var(--gl);border-radius:8px;color:var(--txt);font-family:monospace;font-size:.85rem;outline:none;width:100%}
+    .inp:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-g)}
+    .status{font-size:.78rem;padding:3px 10px;border-radius:16px;font-weight:600}
+    .status.on{background:rgba(52,211,153,.15);color:var(--ok)}
+    .status.off{background:rgba(248,113,113,.15);color:var(--err)}
+    .hint{font-size:.72rem;color:var(--txt-d);margin-top:6px}
+    .hint a{color:var(--pri-l)}
+
+    /* Upload */
+    .upload-zone{border:2px dashed var(--gl);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:all .3s}
+    .upload-zone:hover{border-color:var(--pri);background:rgba(124,92,252,.04)}
+    .upload-zone.has-img{padding:10px;border-style:solid}
+    .upload-icon{font-size:2.2rem;margin-bottom:6px}
+    .upload-txt{color:var(--txt-m);font-size:.85rem}
+    .upload-prev{max-height:200px;max-width:100%;border-radius:8px;object-fit:contain}
+
+    /* Model select */
+    .model-row{display:flex;gap:8px;flex-wrap:wrap}
+    .model-btn{padding:8px 16px;border:2px solid var(--gl);border-radius:10px;background:none;color:var(--txt-m);font-family:var(--f);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .model-btn:hover{border-color:var(--pri)}
+    .model-btn.sel{border-color:var(--pri);color:var(--txt);background:rgba(124,92,252,.12)}
+    .model-btn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+    .dot-q{background:#3b82f6}.dot-l{background:#8b5cf6}.dot-m{background:#f59e0b}
+
+    /* Prompt chips */
+    .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+    .chip{padding:5px 12px;border-radius:18px;border:1px solid var(--gl);background:rgba(255,255,255,.04);color:var(--txt-m);font-size:.75rem;cursor:pointer;transition:all .2s;font-family:var(--f)}
+    .chip:hover,.chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+    textarea{width:100%;padding:10px;background:rgba(255,255,255,.05);border:1px solid var(--gl);border-radius:8px;color:var(--txt);font-family:var(--f);font-size:.85rem;resize:vertical;min-height:70px;outline:none}
+    textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-g)}
+
+    /* Buttons */
+    .actions{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+    .btn{padding:10px 20px;border:none;border-radius:9999px;font-family:var(--fd);font-weight:700;font-size:.88rem;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:6px}
+    .btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn-go{background:linear-gradient(135deg,#7c5cfc,#a855f7);color:#fff;box-shadow:0 4px 15px var(--pri-g)}
+    .btn-go:hover:not(:disabled){transform:translateY(-2px)}
+    .btn-s{background:rgba(255,255,255,.06);color:var(--txt);border:1px solid var(--gl)}
+    .btn-s:hover:not(:disabled){background:rgba(255,255,255,.12)}
+
+    /* ========== STORYBOOK ========== */
+    .book-wrap{display:none;margin-bottom:20px}
+    .book-tabs{display:flex;gap:4px;margin-bottom:12px;background:rgba(0,0,0,.2);border-radius:10px;padding:3px}
+    .book-tab{flex:1;padding:7px;border:none;background:none;color:var(--txt-m);font-family:var(--f);font-size:.8rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all .2s;text-align:center}
+    .book-tab.on{background:var(--pri);color:#fff}
+    .book-tab:hover:not(.on){background:rgba(255,255,255,.06)}
+
+    .book{background:linear-gradient(145deg,#1a1a32,#12122a);border:1px solid var(--gl);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative;min-height:450px}
+    .book-page{display:flex;min-height:450px}
+    @media(max-width:768px){.book-page{flex-direction:column}}
+    .book-img{flex:0 0 45%;background:#0a0a18;display:flex;align-items:center;justify-content:center;padding:24px;position:relative}
+    .book-img img{max-width:100%;max-height:380px;border-radius:12px;object-fit:contain;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+    .book-txt{flex:1;padding:32px;display:flex;flex-direction:column;justify-content:center}
+    .book-title{font-family:var(--fd);font-size:1.4rem;font-weight:700;margin-bottom:16px;background:linear-gradient(135deg,var(--pri-l),#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .book-body{font-size:.95rem;line-height:2;color:var(--txt);white-space:pre-wrap}
+    .book-nav{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-top:1px solid var(--gl)}
+    .nav-btn{padding:8px 18px;border:1px solid var(--gl);border-radius:8px;background:rgba(255,255,255,.04);color:var(--txt);font-family:var(--f);font-size:.82rem;cursor:pointer;transition:all .2s}
+    .nav-btn:hover{background:var(--pri);border-color:var(--pri);color:#fff}
+    .nav-btn:disabled{opacity:.3;cursor:default}
+    .nav-btn:disabled:hover{background:rgba(255,255,255,.04);border-color:var(--gl);color:var(--txt)}
+    .page-info{font-size:.82rem;color:var(--txt-m)}
+    .book-model-tag{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:8px;font-size:.7rem;font-weight:700;backdrop-filter:blur(8px);background:rgba(0,0,0,.5);color:var(--txt)}
+
+    /* Comparison strip */
+    .compare-strip{display:flex;gap:8px;margin-top:12px;padding:12px;background:rgba(0,0,0,.15);border-radius:10px}
+    .compare-item{flex:1;text-align:center;padding:8px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--gl)}
+    .compare-val{font-size:1.1rem;font-weight:700;font-family:var(--fd)}
+    .compare-lbl{font-size:.68rem;color:var(--txt-m);margin-top:2px}
+
+    /* Log */
+    .log-box{background:rgba(0,0,0,.3);border-radius:8px;padding:10px;max-height:160px;overflow-y:auto;font-family:'Consolas','Monaco',monospace;font-size:.74rem;line-height:1.5}
+    .le{padding:1px 0}.le.info{color:var(--txt-m)}.le.success{color:var(--ok)}.le.error{color:var(--err)}.le.warn{color:var(--warn)}
+    .lt{color:var(--txt-d);margin-right:6px}
+
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid var(--gl);border-radius:50%;border-top-color:var(--pri);animation:sp .7s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .ld::after{content:'';animation:dt 1.5s infinite}
+    @keyframes dt{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+
+    /* Loading overlay */
+    .book-loading{position:absolute;inset:0;background:rgba(10,10,26,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;border-radius:18px}
+    .book-loading .spinner{width:32px;height:32px;border-width:3px}
+    .book-loading p{color:var(--txt-m);font-size:.9rem}
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>📖 동화 생성 AI 테스트</h1>
+    <p>그림을 올리면 AI가 동화책을 만들어줍니다</p>
+  </div>
+
+  <!-- Setup -->
+  <div class="setup-grid">
+    <!-- Left: Token + Upload -->
+    <div>
+      <div class="card">
+        <h3>🔑 API 토큰</h3>
+        <div class="api-row">
+          <input type="password" class="inp" id="hf-token" placeholder="hf_xxxxxxxxxxxx" />
+          <button class="btn btn-s" onclick="saveToken()" style="white-space:nowrap">💾</button>
+          <span class="status off" id="api-st">미연결</span>
+        </div>
+        <p class="hint">발급: <a href="https://huggingface.co/settings/tokens" target="_blank">huggingface.co/settings/tokens</a></p>
+      </div>
+      <div class="card">
+        <h3>🖼️ 작품 이미지</h3>
+        <div class="upload-zone" id="uz" onclick="document.getElementById('fi').click()">
+          <div id="up"><div class="upload-icon">📁</div><p class="upload-txt">이미지를 드래그하거나 클릭</p></div>
+          <img id="uprev" class="upload-prev" style="display:none" />
+          <input type="file" id="fi" accept="image/*" hidden />
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Model + Prompt -->
+    <div>
+      <div class="card">
+        <h3>🤖 모델</h3>
+        <div class="model-row">
+          <button class="model-btn sel" id="mb-qwen" onclick="togM('qwen')"><span class="dot dot-q"></span>Qwen2.5-VL</button>
+          <button class="model-btn sel" id="mb-llama" onclick="togM('llama')"><span class="dot dot-l"></span>Llama 3.2 Vision</button>
+          <button class="model-btn sel" id="mb-molmo" onclick="togM('molmo')"><span class="dot dot-m"></span>Molmo-7B</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>✍️ 프롬프트</h3>
+        <div class="chips">
+          <button class="chip on" onclick="setTpl('default',this)">🌟 기본</button>
+          <button class="chip" onclick="setTpl('fantasy',this)">🧙 판타지</button>
+          <button class="chip" onclick="setTpl('adventure',this)">🗺️ 모험</button>
+          <button class="chip" onclick="setTpl('nature',this)">🌿 자연</button>
+          <button class="chip" onclick="setTpl('custom',this)">✏️ 직접</button>
+        </div>
+        <textarea id="prompt"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="actions">
+    <button class="btn btn-go" id="btn-go" onclick="runAll()">📖 동화책 만들기</button>
+    <button class="btn btn-s" onclick="clearAll()">🗑️ 초기화</button>
+  </div>
+
+  <!-- Storybook Viewer -->
+  <div class="book-wrap" id="book-wrap">
+    <div class="book-tabs" id="book-tabs"></div>
+    <div class="book" id="book">
+      <div class="book-page" id="book-page">
+        <div class="book-img">
+          <img id="book-img" src="" />
+          <div class="book-model-tag" id="book-tag"></div>
+        </div>
+        <div class="book-txt">
+          <div class="book-title" id="book-title"></div>
+          <div class="book-body" id="book-body"></div>
+        </div>
+      </div>
+      <div class="book-nav">
+        <button class="nav-btn" id="nav-prev" onclick="navPage(-1)">← 이전</button>
+        <span class="page-info" id="page-info"></span>
+        <button class="nav-btn" id="nav-next" onclick="navPage(1)">다음 →</button>
+      </div>
+    </div>
+
+    <!-- Comparison -->
+    <div class="compare-strip" id="compare" style="display:none">
+      <div class="compare-item" id="cmp-time"><div class="compare-val">—</div><div class="compare-lbl">⚡ 응답 시간</div></div>
+      <div class="compare-item" id="cmp-len"><div class="compare-val">—</div><div class="compare-lbl">📝 글자 수</div></div>
+      <div class="compare-item" id="cmp-pages"><div class="compare-val">—</div><div class="compare-lbl">📄 페이지 수</div></div>
+    </div>
+  </div>
+
+  <!-- Log -->
+  <div class="card">
+    <h3 style="cursor:pointer" onclick="togLog()">🖥️ 로그 <span style="font-size:.7rem;color:var(--txt-d)">(접기/펼치기)</span></h3>
+    <div class="log-box" id="logbox"></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+// === Config ===
+const TPLS = {
+  default: `이 그림을 보고 어린이(5~8세)를 위한 동화를 만들어주세요.\n\n요구사항:\n- 한국어로 작성\n- 제목을 【제목】 형식으로 먼저 작성\n- 본문을 3~5개 단락으로 나누어 작성 (각 단락 사이에 빈 줄)\n- 각 단락은 동화책의 한 페이지처럼 장면을 묘사\n- 전체 400~600자\n- 그림 속 요소들을 이야기에 포함\n- 따뜻하고 교훈적인 메시지`,
+  fantasy: `이 그림을 바탕으로 마법의 세계를 배경으로 한 어린이 동화를 만들어주세요.\n\n요구사항:\n- 한국어, 【제목】 형식으로 제목\n- 3~5개 단락 (각 단락 = 한 페이지)\n- 마법사, 요정, 용 등 판타지 요소\n- 400~600자\n- 용기와 상상력의 메시지`,
+  adventure: `이 그림을 보고 신나는 모험 동화를 만들어주세요.\n\n요구사항:\n- 한국어, 【제목】 형식으로 제목\n- 3~5개 단락 (각 단락 = 한 페이지)\n- 도전과 극복의 서사\n- 400~600자\n- 호기심을 자극하는 결말`,
+  nature: `이 그림을 바탕으로 자연/동물 동화를 만들어주세요.\n\n요구사항:\n- 한국어, 【제목】 형식으로 제목\n- 3~5개 단락 (각 단락 = 한 페이지)\n- 동물이나 자연을 의인화\n- 400~600자\n- 자연 보호 메시지`,
+  custom: ''
+};
+
+const MODELS = {
+  qwen: { id:'Qwen/Qwen2.5-VL-7B-Instruct', name:'Qwen2.5-VL', clr:'#3b82f6' },
+  llama: { id:'meta-llama/Llama-3.2-11B-Vision-Instruct', name:'Llama 3.2 Vision', clr:'#8b5cf6' },
+  molmo: { id:'allenai/Molmo-7B-D-0924', name:'Molmo-7B', clr:'#f59e0b' }
+};
+
+// HF API endpoints to try in order
+const API_URLS = [
+  'https://router.huggingface.co/v1/chat/completions',
+  'https://api-inference.huggingface.co/v1/chat/completions'
+];
+
+let selModels = new Set(['qwen','llama','molmo']);
+let imgB64 = null, imgType = 'image/jpeg';
+let storyData = {}; // { modelKey: { title, pages[], time, raw } }
+let curModel = null, curPage = 0;
+
+// === Init ===
+window.addEventListener('DOMContentLoaded', () => {
+  if (typeof CONFIG !== 'undefined' && CONFIG.HF_TOKEN && CONFIG.HF_TOKEN !== '여기에_토큰을_넣으세요') {
+    localStorage.setItem('hf_token', CONFIG.HF_TOKEN);
+  }
+  const t = localStorage.getItem('hf_token');
+  if (t) { document.getElementById('hf-token').value = t; apiSt(true); }
+  document.getElementById('prompt').value = TPLS.default;
+
+  const fi = document.getElementById('fi');
+  fi.addEventListener('change', onFile);
+  const uz = document.getElementById('uz');
+  uz.addEventListener('dragover', e => { e.preventDefault(); uz.style.borderColor='var(--pri)'; });
+  uz.addEventListener('dragleave', () => { uz.style.borderColor=''; });
+  uz.addEventListener('drop', e => { e.preventDefault(); uz.style.borderColor=''; if(e.dataTransfer.files.length){fi.files=e.dataTransfer.files;onFile()} });
+  log('테스트 환경 준비 완료','success');
+});
+
+// === Token ===
+function saveToken() {
+  const t = document.getElementById('hf-token').value.trim();
+  if (t) { localStorage.setItem('hf_token',t); apiSt(true); log('토큰 저장 완료','success'); }
+}
+function getToken() { return document.getElementById('hf-token').value.trim()||localStorage.getItem('hf_token')||''; }
+function apiSt(on) { const e=document.getElementById('api-st'); e.textContent=on?'연결됨':'미연결'; e.className='status '+(on?'on':'off'); }
+
+// === Upload ===
+function onFile() {
+  const f = document.getElementById('fi').files[0];
+  if (!f||!f.type.startsWith('image/')) return;
+  if (f.size>10*1024*1024) { log('10MB 초과','error'); return; }
+  imgType = f.type;
+  const r = new FileReader();
+  r.onload = e => {
+    imgB64 = e.target.result.split(',')[1];
+    document.getElementById('uprev').src = e.target.result;
+    document.getElementById('uprev').style.display = 'block';
+    document.getElementById('up').style.display = 'none';
+    document.getElementById('uz').classList.add('has-img');
+    log(`이미지 업로드: ${f.name}`,'success');
+  };
+  r.readAsDataURL(f);
+}
+
+// === Model Toggle ===
+function togM(k) {
+  selModels.has(k)?selModels.delete(k):selModels.add(k);
+  document.getElementById('mb-'+k).classList.toggle('sel',selModels.has(k));
+}
+
+// === Template ===
+function setTpl(k,el) {
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  document.getElementById('prompt').value = TPLS[k];
+  if(k==='custom') document.getElementById('prompt').focus();
+}
+
+// === API Call ===
+async function callAPI(modelKey) {
+  const token = getToken(), model = MODELS[modelKey];
+  const prompt = document.getElementById('prompt').value;
+  if (!token) throw new Error('토큰 필요');
+  if (!imgB64) throw new Error('이미지 필요');
+
+  const imgUrl = `data:${imgType};base64,${imgB64}`;
+  const body = {
+    model: model.id,
+    messages: [{ role:'user', content:[
+      { type:'text', text: prompt },
+      { type:'image_url', image_url:{ url: imgUrl } }
+    ]}],
+    max_tokens: 1500, temperature: 0.7
+  };
+
+  for (const apiUrl of API_URLS) {
+    try {
+      log(`[${model.name}] ${apiUrl.split('/')[2]} 시도...`,'info');
+      const resp = await fetch(apiUrl, {
+        method:'POST',
+        headers:{ 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      });
+
+      if (!resp.ok) {
+        const errText = await resp.text();
+        let msg = `HTTP ${resp.status}`;
+        try { const j=JSON.parse(errText); msg=j.error?.message||j.error||j.message||msg; if(typeof msg==='object') msg=JSON.stringify(msg); } catch(e2){ msg+=': '+errText.slice(0,200); }
+
+        if (resp.status===404||resp.status===400) {
+          log(`[${model.name}] ${apiUrl.split('/')[2]} → ${resp.status}, 다음 시도...`,'warn');
+          continue;
+        }
+        if (resp.status===503) {
+          let wait = 20;
+          try { const j=JSON.parse(errText); wait=j.estimated_time||20; } catch{}
+          log(`[${model.name}] 모델 로딩 중... ${Math.ceil(wait)}초 대기`,'warn');
+          await new Promise(r=>setTimeout(r,wait*1000));
+          // retry same url
+          const resp2 = await fetch(apiUrl, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify(body) });
+          if (resp2.ok) { const d2=await resp2.json(); if(d2.choices?.[0]) return d2.choices[0].message.content; }
+          continue;
+        }
+        if (resp.status===429) {
+          log(`[${model.name}] 요청 제한, 15초 대기...`,'warn');
+          await new Promise(r=>setTimeout(r,15000));
+          continue;
+        }
+        throw new Error(msg);
+      }
+
+      const data = await resp.json();
+      if (data.choices?.[0]) return data.choices[0].message.content;
+      if (data.generated_text) return data.generated_text;
+      if (Array.isArray(data)&&data[0]?.generated_text) return data[0].generated_text;
+      throw new Error('알 수 없는 응답 형식');
+
+    } catch(e) {
+      log(`[${model.name}] 엔드포인트 실패: ${e.message}`,'warn');
+      continue;
+    }
+  }
+  throw new Error('모든 엔드포인트 실패 — 모델이 서버리스 추론을 지원하지 않을 수 있습니다');
+}
+
+// === Parse Story into pages ===
+function parseStory(raw) {
+  let title = '동화';
+  let body = raw;
+
+  // Extract title
+  const titleMatch = raw.match(/【(.+?)】/) || raw.match(/^#\s*(.+)/m) || raw.match(/^(.+)\n/);
+  if (titleMatch) {
+    title = titleMatch[1].trim();
+    body = raw.replace(titleMatch[0],'').trim();
+  }
+
+  // Split into pages by double newline or numbered sections
+  let pages = body.split(/\n\s*\n/).filter(p => p.trim().length > 10);
+  if (pages.length < 2) {
+    // Try splitting by sentences if not enough paragraphs
+    const sentences = body.match(/[^.!?。！？]+[.!?。！？]+/g) || [body];
+    pages = [];
+    let chunk = '';
+    sentences.forEach((s,i) => {
+      chunk += s;
+      if (chunk.length > 80 || i === sentences.length - 1) { pages.push(chunk.trim()); chunk = ''; }
+    });
+  }
+  if (pages.length === 0) pages = [body];
+
+  return { title, pages };
+}
+
+// === Run ===
+async function runAll() {
+  if (!getToken()) { log('토큰을 입력해주세요','error'); return; }
+  if (!imgB64) { log('이미지를 업로드해주세요','error'); return; }
+  const keys = [...selModels];
+  if (!keys.length) { log('모델을 선택해주세요','warn'); return; }
+
+  // Show book area with loading
+  const wrap = document.getElementById('book-wrap');
+  wrap.style.display = 'block';
+  const book = document.getElementById('book');
+  book.innerHTML = `<div class="book-loading"><div class="spinner"></div><p class="ld">동화를 만들고 있어요</p></div>`;
+  storyData = {};
+
+  log(`=== 동화 생성 시작: ${keys.map(k=>MODELS[k].name).join(', ')} ===`,'info');
+  document.getElementById('btn-go').disabled = true;
+
+  const promises = keys.map(async key => {
+    const start = performance.now();
+    try {
+      const raw = await callAPI(key);
+      const sec = ((performance.now()-start)/1000).toFixed(1);
+      const parsed = parseStory(raw);
+      storyData[key] = { ...parsed, time: +sec, raw, charCount: raw.length };
+      log(`[${MODELS[key].name}] ✅ 완료 (${sec}초, ${raw.length}자, ${parsed.pages.length}페이지)`,'success');
+    } catch(err) {
+      const sec = ((performance.now()-start)/1000).toFixed(1);
+      storyData[key] = { title:'오류', pages:[`❌ ${err.message}`], time:+sec, raw:'', charCount:0, error:true };
+      log(`[${MODELS[key].name}] ❌ ${err.message}`,'error');
+    }
+  });
+
+  await Promise.allSettled(promises);
+  document.getElementById('btn-go').disabled = false;
+  log('=== 생성 완료 ===','success');
+
+  // Render storybook
+  renderBookTabs();
+  const firstKey = keys.find(k => storyData[k] && !storyData[k].error) || keys[0];
+  showBook(firstKey);
+}
+
+// === Render Book ===
+function renderBookTabs() {
+  const tabs = document.getElementById('book-tabs');
+  tabs.innerHTML = '';
+  Object.keys(storyData).forEach(k => {
+    const d = storyData[k];
+    const btn = document.createElement('button');
+    btn.className = 'book-tab';
+    btn.id = 'bt-'+k;
+    btn.textContent = `${d.error?'❌':'📖'} ${MODELS[k].name}`;
+    btn.onclick = () => showBook(k);
+    tabs.appendChild(btn);
+  });
+}
+
+function showBook(key) {
+  curModel = key; curPage = 0;
+  document.querySelectorAll('.book-tab').forEach(t=>t.classList.remove('on'));
+  const tab = document.getElementById('bt-'+key);
+  if (tab) tab.classList.add('on');
+
+  const d = storyData[key];
+  const book = document.getElementById('book');
+  book.innerHTML = `
+    <div class="book-page" id="book-page">
+      <div class="book-img">
+        <img id="book-img" src="data:${imgType};base64,${imgB64}" />
+        <div class="book-model-tag" id="book-tag">${MODELS[key].name} · ${d.time}초</div>
+      </div>
+      <div class="book-txt">
+        <div class="book-title" id="book-title"></div>
+        <div class="book-body" id="book-body"></div>
+      </div>
+    </div>
+    <div class="book-nav">
+      <button class="nav-btn" id="nav-prev" onclick="navPage(-1)">← 이전</button>
+      <span class="page-info" id="page-info"></span>
+      <button class="nav-btn" id="nav-next" onclick="navPage(1)">다음 →</button>
+    </div>`;
+  renderPage();
+  updateCompare();
+}
+
+function renderPage() {
+  const d = storyData[curModel];
+  if (!d) return;
+  const titleEl = document.getElementById('book-title');
+  const bodyEl = document.getElementById('book-body');
+  const infoEl = document.getElementById('page-info');
+
+  if (curPage === 0) {
+    titleEl.textContent = d.title;
+    bodyEl.textContent = d.pages[0] || '';
+  } else {
+    titleEl.textContent = '';
+    bodyEl.textContent = d.pages[curPage] || '';
+  }
+
+  infoEl.textContent = `${curPage+1} / ${d.pages.length}`;
+  document.getElementById('nav-prev').disabled = curPage === 0;
+  document.getElementById('nav-next').disabled = curPage >= d.pages.length - 1;
+}
+
+function navPage(dir) {
+  const d = storyData[curModel];
+  if (!d) return;
+  curPage = Math.max(0, Math.min(d.pages.length-1, curPage+dir));
+  renderPage();
+}
+
+function updateCompare() {
+  const strip = document.getElementById('compare');
+  const keys = Object.keys(storyData).filter(k=>!storyData[k].error);
+  if (keys.length < 1) { strip.style.display='none'; return; }
+  strip.style.display='flex';
+
+  const d = storyData[curModel];
+  if (!d) return;
+  document.getElementById('cmp-time').innerHTML = `<div class="compare-val">${d.time}초</div><div class="compare-lbl">⚡ 응답 시간</div>`;
+  document.getElementById('cmp-len').innerHTML = `<div class="compare-val">${d.charCount}자</div><div class="compare-lbl">📝 글자 수</div>`;
+  document.getElementById('cmp-pages').innerHTML = `<div class="compare-val">${d.pages.length}</div><div class="compare-lbl">📄 페이지 수</div>`;
+}
+
+function clearAll() {
+  storyData={}; curModel=null; curPage=0;
+  document.getElementById('book-wrap').style.display='none';
+  log('초기화 완료','info');
+}
+
+// === Log ===
+function log(m,l='info') {
+  const c=document.getElementById('logbox');
+  const t=new Date().toLocaleTimeString('ko-KR');
+  const d=document.createElement('div');
+  d.className='le '+l;
+  d.innerHTML=`<span class="lt">[${t}]</span>${m}`;
+  c.appendChild(d); c.scrollTop=c.scrollHeight;
+}
+function togLog() { const c=document.getElementById('logbox'); c.style.display=c.style.display==='none'?'block':'none'; }
+</script>
+</body>
+</html>

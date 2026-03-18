@@ -15,3 +15,6 @@ package-lock.json
 
 # Build output
 dist/
+
+# API 토큰 설정 파일
+test/config.js
