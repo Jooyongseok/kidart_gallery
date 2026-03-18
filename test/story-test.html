@@ -384,7 +384,9 @@ function parseStory(raw) {
   }
   if (pages.length === 0) pages = [body];
 
-  return { title, pages };
+  const pageImages = new Array(pages.length).fill(null);
+  
+  return { title, pages, pageImages };
 }
 
 // === Run ===
@@ -478,18 +480,82 @@ function renderPage() {
   const titleEl = document.getElementById('book-title');
   const bodyEl = document.getElementById('book-body');
   const infoEl = document.getElementById('page-info');
+  const imgEl = document.getElementById('book-img');
 
   if (curPage === 0) {
     titleEl.textContent = d.title;
     bodyEl.textContent = d.pages[0] || '';
+    imgEl.src = `data:${imgType};base64,${imgB64}`; // 표지는 원본 그림
+    document.getElementById('book-tag').textContent = `${MODELS[curModel].name} · 원본`;
   } else {
     titleEl.textContent = '';
     bodyEl.textContent = d.pages[curPage] || '';
+    
+    // 이미지 동적 생성
+    if (d.pageImages[curPage]) {
+      imgEl.src = d.pageImages[curPage];
+      document.getElementById('book-tag').textContent = `${MODELS[curModel].name} · AI 삽화`;
+    } else {
+      imgEl.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='; // 투명 이미지
+      document.getElementById('book-tag').innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:6px"></span> 삽화 생성 중...`;
+      
+      const loadingModel = curModel;
+      const loadingPage = curPage;
+      generatePageImage(curModel, curPage, d.pages[curPage]).then(url => {
+        if (curModel === loadingModel && curPage === loadingPage) { // 여전히 같은 페이지를 보고 있다면
+          imgEl.src = url;
+          document.getElementById('book-tag').textContent = `${MODELS[curModel].name} · AI 삽화`;
+        }
+      }).catch(err => {
+        if (curModel === loadingModel && curPage === loadingPage) {
+          document.getElementById('book-tag').textContent = `삽화 실패`;
+          log(`[삽화 생성 실패] ${err.message}`, 'error');
+        }
+      });
+    }
   }
 
   infoEl.textContent = `${curPage+1} / ${d.pages.length}`;
   document.getElementById('nav-prev').disabled = curPage === 0;
   document.getElementById('nav-next').disabled = curPage >= d.pages.length - 1;
+}
+
+// === Generate Image ===
+async function generatePageImage(modelKey, pageIdx, text) {
+  const token = getToken();
+  if (!token) return;
+  const d = storyData[modelKey];
+  
+  // prompt: cute children's book illustration style + translated/extracted keywords
+  const prompt = "A cute children's storybook illustration, soft watercolor style, bright colors, vibrant, highly detailed. " + text.substring(0, 300);
+  
+  try {
+    const resp = await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inputs: prompt })
+    });
+    
+    if (!resp.ok) {
+      if (resp.status === 503) throw new Error('Model loading');
+      // fallback to SD 3.5
+      const resp2 = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs: prompt })
+      });
+      if (!resp2.ok) throw new Error(`HTTP ${resp2.status}`);
+      const blob = await resp2.blob();
+      d.pageImages[pageIdx] = URL.createObjectURL(blob);
+      return d.pageImages[pageIdx];
+    }
+    
+    const blob = await resp.blob();
+    d.pageImages[pageIdx] = URL.createObjectURL(blob);
+    return d.pageImages[pageIdx];
+  } catch(e) {
+    throw e;
+  }
 }
 
 function navPage(dir) {
