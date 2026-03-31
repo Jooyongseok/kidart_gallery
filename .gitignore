@@ -18,3 +18,19 @@ dist/
 
 # API 토큰 설정 파일
 test/config.js
+
+# Backend runtime data
+backend/uploads/
+backend/*.db
+backend/.env
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.venv/
+venv/
+env/
