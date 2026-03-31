@@ -8,6 +8,7 @@
 // ============================================================
 
 import { MockAIProvider } from './mock-provider.js';
+import { BackendAIProvider } from './backend-provider.js';
 // Future: import { OpenAIProvider } from './openai-provider.js';
 // Future: import { StabilityProvider } from './stability-provider.js';
 
@@ -22,7 +23,13 @@ export function getAIService(config = {}) {
   if (!instance) {
     // =============================================
     // CHANGE PROVIDER HERE to swap AI service:
-    // instance = new OpenAIProvider({ apiKey: '...' });
+    //
+    // [현재] Mock (데모용):
+    //   instance = new MockAIProvider(config);
+    //
+    // [백엔드 연동] FastAPI 멀티 에이전트 백엔드 (uvicorn main:app --port 8200):
+    //   instance = new BackendAIProvider({ baseUrl: 'http://localhost:8200' });
+    //
     // =============================================
     instance = new MockAIProvider(config);
   }

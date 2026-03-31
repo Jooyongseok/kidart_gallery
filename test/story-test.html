@@ -4,97 +4,105 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>📖 동화 생성 AI 테스트</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet" />
   <style>
-    :root{--bg:#0e0e1a;--bg2:#161628;--sf:rgba(30,30,55,.7);--gl:rgba(255,255,255,.10);--pri:#7c5cfc;--pri-l:#a78bfa;--pri-g:rgba(124,92,252,.35);--ok:#34d399;--warn:#fbbf24;--err:#f87171;--txt:#eee8ff;--txt-m:#9a92b8;--txt-d:#5c5680;--r:14px;--f:'Noto Sans KR','Outfit',sans-serif;--fd:'Outfit',sans-serif}
+    :root{--bg:#fdf6e3;--bg2:#faf0d7;--sf:rgba(255,248,230,.92);--gl:rgba(180,160,120,.2);--pri:#e07850;--pri-l:#f4a582;--pri-g:rgba(224,120,80,.2);--ok:#5fa55a;--warn:#d4960a;--err:#c94040;--txt:#3a2e1e;--txt-m:#7a6b55;--txt-d:#b0a08a;--r:14px;--f:'Noto Sans KR',Georgia,serif;--fd:'Gaegu','Noto Sans KR',serif}
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:var(--f);background:var(--bg);color:var(--txt);min-height:100vh;line-height:1.6;padding:20px}
+    body{font-family:var(--f);background:linear-gradient(180deg,#fdf6e3,#f5e6c8);color:var(--txt);min-height:100vh;line-height:1.6;padding:20px}
     h1,h2,h3{font-family:var(--fd)}
     .container{max-width:1200px;margin:0 auto}
 
     .header{text-align:center;margin-bottom:24px}
-    .header h1{font-size:1.8rem;font-weight:800;background:linear-gradient(135deg,#7c5cfc,#f472b6,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:4px}
-    .header p{color:var(--txt-m);font-size:.88rem}
+    .header h1{font-size:2rem;font-weight:700;color:#5a3e28;margin-bottom:4px}
+    .header p{color:var(--txt-m);font-size:.9rem}
 
-    .card{background:var(--sf);border:1px solid var(--gl);border-radius:var(--r);padding:18px;margin-bottom:16px;backdrop-filter:blur(12px)}
-    .card h3{font-size:.95rem;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+    .card{background:var(--sf);border:1px solid var(--gl);border-radius:var(--r);padding:18px;margin-bottom:16px}
+    .card h3{font-size:.95rem;margin-bottom:10px;display:flex;align-items:center;gap:8px;color:#5a3e28}
 
-    /* Setup row */
     .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
     @media(max-width:768px){.setup-grid{grid-template-columns:1fr}}
 
-    .api-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .inp{padding:9px 12px;background:rgba(255,255,255,.05);border:1px solid var(--gl);border-radius:8px;color:var(--txt);font-family:monospace;font-size:.85rem;outline:none;width:100%}
+    .inp{padding:9px 12px;background:rgba(255,255,255,.6);border:1px solid var(--gl);border-radius:8px;color:var(--txt);font-family:monospace;font-size:.85rem;outline:none;width:100%}
     .inp:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-g)}
-    .status{font-size:.78rem;padding:3px 10px;border-radius:16px;font-weight:600}
-    .status.on{background:rgba(52,211,153,.15);color:var(--ok)}
-    .status.off{background:rgba(248,113,113,.15);color:var(--err)}
-    .hint{font-size:.72rem;color:var(--txt-d);margin-top:6px}
-    .hint a{color:var(--pri-l)}
 
-    /* Upload */
-    .upload-zone{border:2px dashed var(--gl);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:all .3s}
-    .upload-zone:hover{border-color:var(--pri);background:rgba(124,92,252,.04)}
+    .upload-zone{border:2px dashed var(--gl);border-radius:var(--r);padding:32px;text-align:center;cursor:pointer;transition:all .3s;background:rgba(255,255,255,.3)}
+    .upload-zone:hover{border-color:var(--pri);background:rgba(224,120,80,.05)}
     .upload-zone.has-img{padding:10px;border-style:solid}
     .upload-icon{font-size:2.2rem;margin-bottom:6px}
     .upload-txt{color:var(--txt-m);font-size:.85rem}
     .upload-prev{max-height:200px;max-width:100%;border-radius:8px;object-fit:contain}
 
-    /* Model select */
     .model-row{display:flex;gap:8px;flex-wrap:wrap}
-    .model-btn{padding:8px 16px;border:2px solid var(--gl);border-radius:10px;background:none;color:var(--txt-m);font-family:var(--f);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
+    .model-btn{padding:8px 16px;border:2px solid var(--gl);border-radius:10px;background:rgba(255,255,255,.4);color:var(--txt-m);font-family:var(--f);font-size:.82rem;font-weight:600;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:6px}
     .model-btn:hover{border-color:var(--pri)}
-    .model-btn.sel{border-color:var(--pri);color:var(--txt);background:rgba(124,92,252,.12)}
+    .model-btn.sel{border-color:var(--pri);color:var(--txt);background:rgba(224,120,80,.1)}
     .model-btn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
     .dot-q{background:#3b82f6}.dot-l{background:#8b5cf6}.dot-m{background:#f59e0b}
 
-    /* Prompt chips */
     .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-    .chip{padding:5px 12px;border-radius:18px;border:1px solid var(--gl);background:rgba(255,255,255,.04);color:var(--txt-m);font-size:.75rem;cursor:pointer;transition:all .2s;font-family:var(--f)}
+    .chip{padding:5px 12px;border-radius:18px;border:1px solid var(--gl);background:rgba(255,255,255,.4);color:var(--txt-m);font-size:.75rem;cursor:pointer;transition:all .2s;font-family:var(--f)}
     .chip:hover,.chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
-    textarea{width:100%;padding:10px;background:rgba(255,255,255,.05);border:1px solid var(--gl);border-radius:8px;color:var(--txt);font-family:var(--f);font-size:.85rem;resize:vertical;min-height:70px;outline:none}
+    textarea{width:100%;padding:10px;background:rgba(255,255,255,.6);border:1px solid var(--gl);border-radius:8px;color:var(--txt);font-family:var(--f);font-size:.85rem;resize:vertical;min-height:70px;outline:none}
     textarea:focus{border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-g)}
 
-    /* Buttons */
     .actions{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-    .btn{padding:10px 20px;border:none;border-radius:9999px;font-family:var(--fd);font-weight:700;font-size:.88rem;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:6px}
+    .btn{padding:10px 20px;border:none;border-radius:9999px;font-family:var(--f);font-weight:700;font-size:.88rem;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:6px}
     .btn:disabled{opacity:.4;cursor:not-allowed}
-    .btn-go{background:linear-gradient(135deg,#7c5cfc,#a855f7);color:#fff;box-shadow:0 4px 15px var(--pri-g)}
-    .btn-go:hover:not(:disabled){transform:translateY(-2px)}
-    .btn-s{background:rgba(255,255,255,.06);color:var(--txt);border:1px solid var(--gl)}
-    .btn-s:hover:not(:disabled){background:rgba(255,255,255,.12)}
+    .btn-go{background:linear-gradient(135deg,#e07850,#d4603c);color:#fff;box-shadow:0 4px 15px var(--pri-g)}
+    .btn-go:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px var(--pri-g)}
+    .btn-s{background:rgba(255,255,255,.5);color:var(--txt);border:1px solid var(--gl)}
+    .btn-s:hover:not(:disabled){background:rgba(255,255,255,.8)}
 
     /* ========== STORYBOOK ========== */
     .book-wrap{display:none;margin-bottom:20px}
-    .book-tabs{display:flex;gap:4px;margin-bottom:12px;background:rgba(0,0,0,.2);border-radius:10px;padding:3px}
+    .book-tabs{display:flex;gap:4px;margin-bottom:12px;background:rgba(180,160,120,.1);border-radius:10px;padding:3px}
     .book-tab{flex:1;padding:7px;border:none;background:none;color:var(--txt-m);font-family:var(--f);font-size:.8rem;font-weight:600;border-radius:8px;cursor:pointer;transition:all .2s;text-align:center}
     .book-tab.on{background:var(--pri);color:#fff}
-    .book-tab:hover:not(.on){background:rgba(255,255,255,.06)}
+    .book-tab:hover:not(.on){background:rgba(180,160,120,.12)}
 
-    .book{background:linear-gradient(145deg,#1a1a32,#12122a);border:1px solid var(--gl);border-radius:18px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.4);position:relative;min-height:450px}
-    .book-page{display:flex;min-height:450px}
+    .book{
+      background:#fffdf5;
+      border:none;
+      border-radius:6px;
+      box-shadow:0 2px 8px rgba(0,0,0,.06),-6px 0 24px rgba(0,0,0,.04),6px 0 24px rgba(0,0,0,.04),0 0 0 1px rgba(180,160,120,.12);
+      position:relative;
+      min-height:500px;
+      overflow:hidden;
+    }
+    .book-page{display:flex;min-height:500px}
     @media(max-width:768px){.book-page{flex-direction:column}}
-    .book-img{flex:0 0 45%;background:#0a0a18;display:flex;align-items:center;justify-content:center;padding:24px;position:relative}
-    .book-img img{max-width:100%;max-height:380px;border-radius:12px;object-fit:contain;box-shadow:0 8px 30px rgba(0,0,0,.5)}
-    .book-txt{flex:1;padding:32px;display:flex;flex-direction:column;justify-content:center}
-    .book-title{font-family:var(--fd);font-size:1.4rem;font-weight:700;margin-bottom:16px;background:linear-gradient(135deg,var(--pri-l),#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-    .book-body{font-size:.95rem;line-height:2;color:var(--txt);white-space:pre-wrap}
-    .book-nav{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-top:1px solid var(--gl)}
-    .nav-btn{padding:8px 18px;border:1px solid var(--gl);border-radius:8px;background:rgba(255,255,255,.04);color:var(--txt);font-family:var(--f);font-size:.82rem;cursor:pointer;transition:all .2s}
+    .book-page.cover{flex-direction:column;align-items:center;text-align:center}
+    .book-page.cover .book-img{flex:none;width:100%;max-height:340px;border-right:none;border-bottom:1px solid rgba(180,160,120,.15);padding:32px}
+    .book-page.cover .book-txt{padding:28px 40px;align-items:center}
+    .book-page.cover .book-title{font-size:2.4rem;margin-bottom:8px}
+    .book-page.cover .book-subtitle{font-size:1rem;color:var(--txt-m);font-style:italic}
+
+    .book-img{
+      flex:0 0 50%;
+      background:linear-gradient(135deg,#faf5e8,#f5eed8);
+      display:flex;align-items:center;justify-content:center;
+      padding:28px;position:relative;
+      border-right:1px solid rgba(180,160,120,.15);
+    }
+    .book-img img{max-width:100%;max-height:420px;border-radius:8px;object-fit:contain;box-shadow:0 4px 16px rgba(0,0,0,.08)}
+    .book-txt{flex:1;padding:40px 36px;display:flex;flex-direction:column;justify-content:center}
+    .book-title{font-family:var(--fd);font-size:1.8rem;font-weight:700;color:#5a3e28;margin-bottom:16px;line-height:1.4}
+    .book-body{font-size:1.15rem;line-height:2.2;color:var(--txt);white-space:pre-wrap;font-family:'Noto Sans KR',serif}
+
+    .book-nav{display:flex;justify-content:space-between;align-items:center;padding:16px 28px;border-top:1px solid rgba(180,160,120,.12);background:rgba(250,245,232,.5)}
+    .nav-btn{padding:10px 24px;border:1px solid rgba(180,160,120,.25);border-radius:24px;background:#fffdf5;color:#5a3e28;font-family:var(--f);font-size:.88rem;cursor:pointer;transition:all .2s}
     .nav-btn:hover{background:var(--pri);border-color:var(--pri);color:#fff}
     .nav-btn:disabled{opacity:.3;cursor:default}
-    .nav-btn:disabled:hover{background:rgba(255,255,255,.04);border-color:var(--gl);color:var(--txt)}
-    .page-info{font-size:.82rem;color:var(--txt-m)}
-    .book-model-tag{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:8px;font-size:.7rem;font-weight:700;backdrop-filter:blur(8px);background:rgba(0,0,0,.5);color:var(--txt)}
+    .nav-btn:disabled:hover{background:#fffdf5;border-color:rgba(180,160,120,.25);color:#5a3e28}
+    .page-info{font-size:.95rem;color:var(--txt-m);font-style:italic;font-family:var(--fd)}
+    .book-model-tag{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:8px;font-size:.7rem;font-weight:700;background:rgba(255,253,245,.85);color:var(--txt-m);border:1px solid rgba(180,160,120,.15)}
 
-    /* Comparison strip */
-    .compare-strip{display:flex;gap:8px;margin-top:12px;padding:12px;background:rgba(0,0,0,.15);border-radius:10px}
-    .compare-item{flex:1;text-align:center;padding:8px;border-radius:8px;background:rgba(255,255,255,.03);border:1px solid var(--gl)}
-    .compare-val{font-size:1.1rem;font-weight:700;font-family:var(--fd)}
+    .compare-strip{display:flex;gap:8px;margin-top:12px;padding:12px;background:rgba(180,160,120,.06);border-radius:10px}
+    .compare-item{flex:1;text-align:center;padding:8px;border-radius:8px;background:rgba(255,255,255,.5);border:1px solid var(--gl)}
+    .compare-val{font-size:1.1rem;font-weight:700;color:var(--txt)}
     .compare-lbl{font-size:.68rem;color:var(--txt-m);margin-top:2px}
 
-    /* Log */
-    .log-box{background:rgba(0,0,0,.3);border-radius:8px;padding:10px;max-height:160px;overflow-y:auto;font-family:'Consolas','Monaco',monospace;font-size:.74rem;line-height:1.5}
+    .log-box{background:rgba(60,40,20,.04);border:1px solid rgba(180,160,120,.15);border-radius:8px;padding:10px;max-height:160px;overflow-y:auto;font-family:'Consolas','Monaco',monospace;font-size:.74rem;line-height:1.5}
     .le{padding:1px 0}.le.info{color:var(--txt-m)}.le.success{color:var(--ok)}.le.error{color:var(--err)}.le.warn{color:var(--warn)}
     .lt{color:var(--txt-d);margin-right:6px}
 
@@ -103,10 +111,9 @@
     .ld::after{content:'';animation:dt 1.5s infinite}
     @keyframes dt{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
 
-    /* Loading overlay */
-    .book-loading{position:absolute;inset:0;background:rgba(10,10,26,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;border-radius:18px}
+    .book-loading{position:absolute;inset:0;background:rgba(253,246,227,.9);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;border-radius:6px}
     .book-loading .spinner{width:32px;height:32px;border-width:3px}
-    .book-loading p{color:var(--txt-m);font-size:.9rem}
+    .book-loading p{color:var(--txt-m);font-size:.95rem;font-family:var(--fd)}
   </style>
 </head>
 <body>
@@ -116,19 +123,8 @@
     <p>그림을 올리면 AI가 동화책을 만들어줍니다</p>
   </div>
 
-  <!-- Setup -->
   <div class="setup-grid">
-    <!-- Left: Token + Upload -->
     <div>
-      <div class="card">
-        <h3>🔑 API 토큰</h3>
-        <div class="api-row">
-          <input type="password" class="inp" id="hf-token" placeholder="hf_xxxxxxxxxxxx" />
-          <button class="btn btn-s" onclick="saveToken()" style="white-space:nowrap">💾</button>
-          <span class="status off" id="api-st">미연결</span>
-        </div>
-        <p class="hint">발급: <a href="https://huggingface.co/settings/tokens" target="_blank">huggingface.co/settings/tokens</a></p>
-      </div>
       <div class="card">
         <h3>🖼️ 작품 이미지</h3>
         <div class="upload-zone" id="uz" onclick="document.getElementById('fi').click()">
@@ -139,14 +135,22 @@
       </div>
     </div>
 
-    <!-- Right: Model + Prompt -->
     <div>
       <div class="card">
         <h3>🤖 모델</h3>
         <div class="model-row">
           <button class="model-btn sel" id="mb-qwen" onclick="togM('qwen')"><span class="dot dot-q"></span>Qwen2.5-VL</button>
-          <button class="model-btn sel" id="mb-llama" onclick="togM('llama')"><span class="dot dot-l"></span>Llama 3.2 Vision</button>
-          <button class="model-btn sel" id="mb-molmo" onclick="togM('molmo')"><span class="dot dot-m"></span>Molmo-7B</button>
+          <button class="model-btn" id="mb-llama" onclick="togM('llama')"><span class="dot dot-l"></span>Llama 3.2 Vision</button>
+          <button class="model-btn" id="mb-mistral" onclick="togM('mistral')"><span class="dot dot-m"></span>Pixtral-12B</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>🌐 언어</h3>
+        <div class="model-row" id="lang-row">
+          <button class="model-btn sel" id="lb-ko" onclick="setLang('ko')">🇰🇷 한국어</button>
+          <button class="model-btn" id="lb-en" onclick="setLang('en')">🇺🇸 English</button>
+          <button class="model-btn" id="lb-ja" onclick="setLang('ja')">🇯🇵 日本語</button>
+          <button class="model-btn" id="lb-zh" onclick="setLang('zh')">🇨🇳 中文</button>
         </div>
       </div>
       <div class="card">
@@ -160,37 +164,29 @@
         </div>
         <textarea id="prompt"></textarea>
       </div>
+      <div class="card">
+        <h3>🎨 삽화 스타일</h3>
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:.8rem;color:var(--txt-m);white-space:nowrap">원본 유사</span>
+          <input type="range" id="strength-slider" min="0.2" max="0.8" step="0.05" value="0.45" style="flex:1;accent-color:var(--pri)" oninput="updateStrength(this.value)">
+          <span style="font-size:.8rem;color:var(--txt-m);white-space:nowrap">창의적</span>
+        </div>
+        <div style="text-align:center;margin-top:4px">
+          <span id="strength-val" style="font-size:.85rem;font-weight:700;color:var(--pri)">0.45</span>
+          <span style="font-size:.75rem;color:var(--txt-d)"> (낮을수록 원본 그림에 가까운 삽화)</span>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Actions -->
   <div class="actions">
     <button class="btn btn-go" id="btn-go" onclick="runAll()">📖 동화책 만들기</button>
     <button class="btn btn-s" onclick="clearAll()">🗑️ 초기화</button>
   </div>
 
-  <!-- Storybook Viewer -->
   <div class="book-wrap" id="book-wrap">
     <div class="book-tabs" id="book-tabs"></div>
-    <div class="book" id="book">
-      <div class="book-page" id="book-page">
-        <div class="book-img">
-          <img id="book-img" src="" />
-          <div class="book-model-tag" id="book-tag"></div>
-        </div>
-        <div class="book-txt">
-          <div class="book-title" id="book-title"></div>
-          <div class="book-body" id="book-body"></div>
-        </div>
-      </div>
-      <div class="book-nav">
-        <button class="nav-btn" id="nav-prev" onclick="navPage(-1)">← 이전</button>
-        <span class="page-info" id="page-info"></span>
-        <button class="nav-btn" id="nav-next" onclick="navPage(1)">다음 →</button>
-      </div>
-    </div>
-
-    <!-- Comparison -->
+    <div class="book" id="book"></div>
     <div class="compare-strip" id="compare" style="display:none">
       <div class="compare-item" id="cmp-time"><div class="compare-val">—</div><div class="compare-lbl">⚡ 응답 시간</div></div>
       <div class="compare-item" id="cmp-len"><div class="compare-val">—</div><div class="compare-lbl">📝 글자 수</div></div>
@@ -198,49 +194,148 @@
     </div>
   </div>
 
-  <!-- Log -->
   <div class="card">
     <h3 style="cursor:pointer" onclick="togLog()">🖥️ 로그 <span style="font-size:.7rem;color:var(--txt-d)">(접기/펼치기)</span></h3>
     <div class="log-box" id="logbox"></div>
   </div>
 </div>
 
-<script src="config.js"></script>
+<!-- 토큰 불필요: VLM은 로컬 vLLM, 이미지는 Pollinations.ai -->
 <script>
 // === Config ===
-const TPLS = {
-  default: `이 그림을 보고 어린이(5~8세)를 위한 동화를 만들어주세요.\n\n요구사항:\n- 한국어로 작성\n- 제목을 【제목】 형식으로 먼저 작성\n- 본문을 3~5개 단락으로 나누어 작성 (각 단락 사이에 빈 줄)\n- 각 단락은 동화책의 한 페이지처럼 장면을 묘사\n- 전체 400~600자\n- 그림 속 요소들을 이야기에 포함\n- 따뜻하고 교훈적인 메시지`,
-  fantasy: `이 그림을 바탕으로 마법의 세계를 배경으로 한 어린이 동화를 만들어주세요.\n\n요구사항:\n- 한국어, 【제목】 형식으로 제목\n- 3~5개 단락 (각 단락 = 한 페이지)\n- 마법사, 요정, 용 등 판타지 요소\n- 400~600자\n- 용기와 상상력의 메시지`,
-  adventure: `이 그림을 보고 신나는 모험 동화를 만들어주세요.\n\n요구사항:\n- 한국어, 【제목】 형식으로 제목\n- 3~5개 단락 (각 단락 = 한 페이지)\n- 도전과 극복의 서사\n- 400~600자\n- 호기심을 자극하는 결말`,
-  nature: `이 그림을 바탕으로 자연/동물 동화를 만들어주세요.\n\n요구사항:\n- 한국어, 【제목】 형식으로 제목\n- 3~5개 단락 (각 단락 = 한 페이지)\n- 동물이나 자연을 의인화\n- 400~600자\n- 자연 보호 메시지`,
-  custom: ''
+// === Language ===
+const LANGS = {
+  ko: { name:'한국어', write:'한국어로 작성', title:'【제목】' },
+  en: { name:'English', write:'Write in English', title:'【Title】' },
+  ja: { name:'日本語', write:'日本語で作成', title:'【タイトル】' },
+  zh: { name:'中文', write:'用中文写作', title:'【标题】' }
 };
+let curLang = 'ko';
+
+function setLang(lang) {
+  curLang = lang;
+  document.querySelectorAll('#lang-row .model-btn').forEach(b => b.classList.remove('sel'));
+  document.getElementById('lb-'+lang).classList.add('sel');
+  // 현재 선택된 템플릿 다시 적용
+  const activeChip = document.querySelector('.chip.on');
+  if (activeChip) activeChip.click();
+}
+
+const SCENE_INSTRUCTION = `\n\n[IMPORTANT - Illustration Prompt] At the end of EACH paragraph, you MUST write an illustration description in English using this exact format:
+[SCENE: a detailed English description of the illustration for this page]
+
+Rules for SCENE tags:
+- MUST be in English
+- Start EVERY scene with the EXACT same character description (same hair color/style, same clothing colors/type, same features) — characters must look IDENTICAL across all pages
+- Describe the specific action and setting for THIS paragraph
+- Use the SAME art style as the original drawing (e.g., "crayon drawing", "colored pencil sketch", "marker illustration") — do NOT say "watercolor" or "professional illustration" unless the original drawing actually uses that style
+- End with: "children's drawing style, maintaining original art style, bright colors"
+- Do NOT change character appearance between scenes
+- Example: [SCENE: A small girl with short black hair wearing a yellow dress (same as original drawing), running through a sunflower garden with her orange cat, crayon drawing style, thick outlines, bright primary colors, children's drawing style, maintaining original art style]`;
+
+function buildPrompt(tplKey) {
+  const L = LANGS[curLang];
+  const base = {
+    default: `Carefully observe this drawing in great detail.
+
+Step 1 — ANALYZE THE DRAWING:
+- Identify every character (appearance, hair, clothing, expression, pose)
+- Identify every object, animal, plant
+- Describe the background, setting, colors, and overall mood
+- Note any text, symbols, or unique details
+
+Step 2 — CREATE A STORY:
+Based STRICTLY on what you see in the drawing, create a children's story (ages 5-8).
+
+Rules:
+- ${L.write}
+- Title in ${L.title} format
+- 3~5 paragraphs separated by blank lines (each = one storybook page)
+- 400~600 characters
+- The main character MUST look exactly like the character in the drawing (same hair, clothes, colors)
+- Every object and animal in the drawing MUST appear in the story
+- The background/setting in the story MUST match the drawing
+- Do NOT invent characters or objects that are not in the drawing
+- Warm, positive message`,
+
+    fantasy: `Carefully observe this drawing in great detail.
+
+Step 1 — ANALYZE THE DRAWING:
+- Identify every character, object, animal, color, and background detail
+
+Step 2 — CREATE A FANTASY STORY:
+Based on the EXACT characters and objects in the drawing, create a magical children's story.
+
+Rules:
+- ${L.write}
+- Title in ${L.title} format
+- 3~5 paragraphs (each = one page)
+- The main character MUST match the drawing exactly (same appearance, clothing)
+- Add magical elements (spells, enchanted objects, talking animals) but keep the original characters
+- All objects from the drawing must appear in the story
+- 400~600 characters
+- Message about courage and imagination`,
+
+    adventure: `Carefully observe this drawing in great detail.
+
+Step 1 — ANALYZE THE DRAWING:
+- Identify every character, object, animal, color, and background detail
+
+Step 2 — CREATE AN ADVENTURE STORY:
+Based on the EXACT characters and objects in the drawing, create an exciting adventure story for children.
+
+Rules:
+- ${L.write}
+- Title in ${L.title} format
+- 3~5 paragraphs (each = one page)
+- The main character MUST match the drawing exactly
+- The adventure setting should relate to the drawing's background
+- All objects from the drawing must play a role
+- 400~600 characters
+- Message about curiosity and perseverance`,
+
+    nature: `Carefully observe this drawing in great detail.
+
+Step 1 — ANALYZE THE DRAWING:
+- Identify every animal, plant, natural element, color, and background detail
+
+Step 2 — CREATE A NATURE STORY:
+Based on the EXACT elements in the drawing, create a nature/animal story for children.
+
+Rules:
+- ${L.write}
+- Title in ${L.title} format
+- 3~5 paragraphs (each = one page)
+- Personify the animals/plants from the drawing as characters
+- Their appearance MUST match the drawing exactly
+- 400~600 characters
+- Message about nature and friendship`
+  };
+  return (base[tplKey] || '') + (tplKey !== 'custom' ? SCENE_INSTRUCTION : '');
+}
+
+const TPLS = { default:true, fantasy:true, adventure:true, nature:true, custom:'' };
 
 const MODELS = {
   qwen: { id:'Qwen/Qwen2.5-VL-7B-Instruct', name:'Qwen2.5-VL', clr:'#3b82f6' },
   llama: { id:'meta-llama/Llama-3.2-11B-Vision-Instruct', name:'Llama 3.2 Vision', clr:'#8b5cf6' },
-  molmo: { id:'allenai/Molmo-7B-D-0924', name:'Molmo-7B', clr:'#f59e0b' }
+  mistral: { id:'mistralai/Pixtral-12B-2409', name:'Pixtral-12B', clr:'#f59e0b' }
 };
 
-// HF API endpoints to try in order
-const API_URLS = [
-  'https://router.huggingface.co/v1/chat/completions',
-  'https://api-inference.huggingface.co/v1/chat/completions'
-];
+// Proxy endpoints (via server.js) — no CORS issues
+const API_URLS = ['/api/hf-chat'];
+const IMG_GEN_URL = '/api/img-gen'; // Pollinations.ai (무료, 토큰 불필요)
 
-let selModels = new Set(['qwen','llama','molmo']);
+let selModels = new Set(['qwen']);
 let imgB64 = null, imgType = 'image/jpeg';
-let storyData = {}; // { modelKey: { title, pages[], time, raw } }
+let storyData = {};
 let curModel = null, curPage = 0;
+let imgStrength = 0.45;
+let characterSheet = '';
 
 // === Init ===
 window.addEventListener('DOMContentLoaded', () => {
-  if (typeof CONFIG !== 'undefined' && CONFIG.HF_TOKEN && CONFIG.HF_TOKEN !== '여기에_토큰을_넣으세요') {
-    localStorage.setItem('hf_token', CONFIG.HF_TOKEN);
-  }
-  const t = localStorage.getItem('hf_token');
-  if (t) { document.getElementById('hf-token').value = t; apiSt(true); }
-  document.getElementById('prompt').value = TPLS.default;
+  document.getElementById('prompt').value = buildPrompt('default');
 
   const fi = document.getElementById('fi');
   fi.addEventListener('change', onFile);
@@ -248,31 +343,47 @@ window.addEventListener('DOMContentLoaded', () => {
   uz.addEventListener('dragover', e => { e.preventDefault(); uz.style.borderColor='var(--pri)'; });
   uz.addEventListener('dragleave', () => { uz.style.borderColor=''; });
   uz.addEventListener('drop', e => { e.preventDefault(); uz.style.borderColor=''; if(e.dataTransfer.files.length){fi.files=e.dataTransfer.files;onFile()} });
-  log('테스트 환경 준비 완료','success');
+  log('테스트 환경 준비 완료 — run-vllm.sh + node server.js 실행 확인','success');
 });
 
-// === Token ===
-function saveToken() {
-  const t = document.getElementById('hf-token').value.trim();
-  if (t) { localStorage.setItem('hf_token',t); apiSt(true); log('토큰 저장 완료','success'); }
+// === Style Strength ===
+function updateStrength(val) {
+  imgStrength = parseFloat(val);
+  document.getElementById('strength-val').textContent = val;
 }
-function getToken() { return document.getElementById('hf-token').value.trim()||localStorage.getItem('hf_token')||''; }
-function apiSt(on) { const e=document.getElementById('api-st'); e.textContent=on?'연결됨':'미연결'; e.className='status '+(on?'on':'off'); }
+
+// 토큰 불필요 — VLM은 로컬 vLLM, 이미지는 Pollinations.ai (무료)
 
 // === Upload ===
 function onFile() {
   const f = document.getElementById('fi').files[0];
   if (!f||!f.type.startsWith('image/')) return;
   if (f.size>10*1024*1024) { log('10MB 초과','error'); return; }
-  imgType = f.type;
+  imgType = 'image/jpeg';
   const r = new FileReader();
   r.onload = e => {
-    imgB64 = e.target.result.split(',')[1];
-    document.getElementById('uprev').src = e.target.result;
-    document.getElementById('uprev').style.display = 'block';
-    document.getElementById('up').style.display = 'none';
-    document.getElementById('uz').classList.add('has-img');
-    log(`이미지 업로드: ${f.name}`,'success');
+    // 고해상도 이미지를 1024px 이하로 리사이즈 (VLM 토큰 절약)
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1024;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        const scale = MAX / Math.max(w, h);
+        w = Math.round(w * scale);
+        h = Math.round(h * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      imgB64 = dataUrl.split(',')[1];
+      document.getElementById('uprev').src = dataUrl;
+      document.getElementById('uprev').style.display = 'block';
+      document.getElementById('up').style.display = 'none';
+      document.getElementById('uz').classList.add('has-img');
+      log(`이미지 업로드: ${f.name} (${img.width}×${img.height} → ${w}×${h})`, 'success');
+    };
+    img.src = e.target.result;
   };
   r.readAsDataURL(f);
 }
@@ -284,18 +395,19 @@ function togM(k) {
 }
 
 // === Template ===
+let curTpl = 'default';
 function setTpl(k,el) {
+  curTpl = k;
   document.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
   el.classList.add('on');
-  document.getElementById('prompt').value = TPLS[k];
+  document.getElementById('prompt').value = k === 'custom' ? '' : buildPrompt(k);
   if(k==='custom') document.getElementById('prompt').focus();
 }
 
 // === API Call ===
 async function callAPI(modelKey) {
-  const token = getToken(), model = MODELS[modelKey];
+  const model = MODELS[modelKey];
   const prompt = document.getElementById('prompt').value;
-  if (!token) throw new Error('토큰 필요');
   if (!imgB64) throw new Error('이미지 필요');
 
   const imgUrl = `data:${imgType};base64,${imgB64}`;
@@ -305,15 +417,16 @@ async function callAPI(modelKey) {
       { type:'text', text: prompt },
       { type:'image_url', image_url:{ url: imgUrl } }
     ]}],
-    max_tokens: 1500, temperature: 0.7
+    max_tokens: 2000, temperature: 0.7
   };
 
+  let lastError = '';
   for (const apiUrl of API_URLS) {
     try {
-      log(`[${model.name}] ${apiUrl.split('/')[2]} 시도...`,'info');
+      log(`[${model.name}] 로컬 vLLM 요청 중...`,'info');
       const resp = await fetch(apiUrl, {
         method:'POST',
-        headers:{ 'Authorization':`Bearer ${token}`, 'Content-Type':'application/json' },
+        headers:{ 'Content-Type':'application/json' },
         body: JSON.stringify(body)
       });
 
@@ -323,24 +436,32 @@ async function callAPI(modelKey) {
         try { const j=JSON.parse(errText); msg=j.error?.message||j.error||j.message||msg; if(typeof msg==='object') msg=JSON.stringify(msg); } catch(e2){ msg+=': '+errText.slice(0,200); }
 
         if (resp.status===404||resp.status===400) {
-          log(`[${model.name}] ${apiUrl.split('/')[2]} → ${resp.status}, 다음 시도...`,'warn');
+          log(`[${model.name}] 접근 실패 (${resp.status}). gated 모델이거나 서버리스 미지원.`,'warn');
+          lastError = `${model.name}: ${msg}`;
           continue;
         }
         if (resp.status===503) {
-          let wait = 20;
-          try { const j=JSON.parse(errText); wait=j.estimated_time||20; } catch{}
-          log(`[${model.name}] 모델 로딩 중... ${Math.ceil(wait)}초 대기`,'warn');
-          await new Promise(r=>setTimeout(r,wait*1000));
-          // retry same url
-          const resp2 = await fetch(apiUrl, { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body:JSON.stringify(body) });
-          if (resp2.ok) { const d2=await resp2.json(); if(d2.choices?.[0]) return d2.choices[0].message.content; }
+          for (let retry = 0; retry < 2; retry++) {
+            let wait = 20;
+            try { const j=JSON.parse(errText); wait=Math.min(j.estimated_time||20, 60); } catch{}
+            log(`[${model.name}] 모델 로딩 중... ${Math.ceil(wait)}초 대기 (${retry+1}/2)`,'warn');
+            await new Promise(r=>setTimeout(r,wait*1000));
+            const resp2 = await fetch(apiUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+            if (resp2.ok) { const d2=await resp2.json(); if(d2.choices?.[0]) return d2.choices[0].message.content; }
+            if (resp2.status !== 503) break;
+          }
+          lastError = `${model.name} 모델 로딩 타임아웃`;
           continue;
         }
         if (resp.status===429) {
-          log(`[${model.name}] 요청 제한, 15초 대기...`,'warn');
-          await new Promise(r=>setTimeout(r,15000));
+          log(`[${model.name}] 요청 제한, 20초 대기...`,'warn');
+          await new Promise(r=>setTimeout(r,20000));
+          const resp2 = await fetch(apiUrl, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+          if (resp2.ok) { const d2=await resp2.json(); if(d2.choices?.[0]) return d2.choices[0].message.content; }
+          lastError = '요청 제한 초과';
           continue;
         }
+        if (resp.status===401||resp.status===403) throw new Error('토큰이 유효하지 않습니다.');
         throw new Error(msg);
       }
 
@@ -349,54 +470,46 @@ async function callAPI(modelKey) {
       if (data.generated_text) return data.generated_text;
       if (Array.isArray(data)&&data[0]?.generated_text) return data[0].generated_text;
       throw new Error('알 수 없는 응답 형식');
-
     } catch(e) {
-      log(`[${model.name}] 엔드포인트 실패: ${e.message}`,'warn');
+      lastError = e.message;
+      log(`[${model.name}] 실패: ${e.message}`,'warn');
       continue;
     }
   }
-  throw new Error('모든 엔드포인트 실패 — 모델이 서버리스 추론을 지원하지 않을 수 있습니다');
+  throw new Error(`${model.name}: ${lastError || '요청 실패'}`);
 }
 
-// === Parse Story into pages ===
+// === Parse Story ===
 function parseStory(raw) {
   let title = '동화';
   let body = raw;
-
-  // Extract title
   const titleMatch = raw.match(/【(.+?)】/) || raw.match(/^#\s*(.+)/m) || raw.match(/^(.+)\n/);
-  if (titleMatch) {
-    title = titleMatch[1].trim();
-    body = raw.replace(titleMatch[0],'').trim();
-  }
+  if (titleMatch) { title = titleMatch[1].trim(); body = raw.replace(titleMatch[0],'').trim(); }
 
-  // Split into pages by double newline or numbered sections
   let pages = body.split(/\n\s*\n/).filter(p => p.trim().length > 10);
   if (pages.length < 2) {
-    // Try splitting by sentences if not enough paragraphs
     const sentences = body.match(/[^.!?。！？]+[.!?。！？]+/g) || [body];
-    pages = [];
-    let chunk = '';
-    sentences.forEach((s,i) => {
-      chunk += s;
-      if (chunk.length > 80 || i === sentences.length - 1) { pages.push(chunk.trim()); chunk = ''; }
-    });
+    pages = []; let chunk = '';
+    sentences.forEach((s,i) => { chunk += s; if (chunk.length > 80 || i === sentences.length - 1) { pages.push(chunk.trim()); chunk = ''; } });
   }
   if (pages.length === 0) pages = [body];
 
-  const pageImages = new Array(pages.length).fill(null);
-  
-  return { title, pages, pageImages };
+  const scenes = [];
+  pages = pages.map(p => {
+    const m = p.match(/\[SCENE:\s*(.+?)\]/i);
+    scenes.push(m ? m[1].trim() : null);
+    return p.replace(/\[SCENE:\s*[^\]]*\]/gi, '').trim();
+  });
+
+  return { title, pages, scenes, pageImages: new Array(pages.length).fill(null) };
 }
 
 // === Run ===
 async function runAll() {
-  if (!getToken()) { log('토큰을 입력해주세요','error'); return; }
   if (!imgB64) { log('이미지를 업로드해주세요','error'); return; }
   const keys = [...selModels];
   if (!keys.length) { log('모델을 선택해주세요','warn'); return; }
 
-  // Show book area with loading
   const wrap = document.getElementById('book-wrap');
   wrap.style.display = 'block';
   const book = document.getElementById('book');
@@ -405,6 +518,9 @@ async function runAll() {
 
   log(`=== 동화 생성 시작: ${keys.map(k=>MODELS[k].name).join(', ')} ===`,'info');
   document.getElementById('btn-go').disabled = true;
+
+  // Extract character sheet for consistent illustrations
+  characterSheet = await extractCharacterSheet();
 
   const promises = keys.map(async key => {
     const start = performance.now();
@@ -416,7 +532,7 @@ async function runAll() {
       log(`[${MODELS[key].name}] ✅ 완료 (${sec}초, ${raw.length}자, ${parsed.pages.length}페이지)`,'success');
     } catch(err) {
       const sec = ((performance.now()-start)/1000).toFixed(1);
-      storyData[key] = { title:'오류', pages:[`❌ ${err.message}`], time:+sec, raw:'', charCount:0, error:true };
+      storyData[key] = { title:'오류', pages:[`❌ ${err.message}`], scenes:[null], pageImages:[null], time:+sec, raw:'', charCount:0, error:true };
       log(`[${MODELS[key].name}] ❌ ${err.message}`,'error');
     }
   });
@@ -425,17 +541,32 @@ async function runAll() {
   document.getElementById('btn-go').disabled = false;
   log('=== 생성 완료 ===','success');
 
-  // Render storybook
   renderBookTabs();
   const firstKey = keys.find(k => storyData[k] && !storyData[k].error) || keys[0];
   showBook(firstKey);
+
+  // Pollinations.ai로 전 페이지 삽화 백그라운드 생성 (순차적, rate limit 대응)
+  for (const key of Object.keys(storyData)) {
+    const d = storyData[key];
+    if (d.error) continue;
+    for (let i = 1; i < d.pages.length; i++) {
+      if (!d.pageImages[i]) {
+        try { await generatePageImage(key, i, d.pages[i]); } catch {}
+        // Pollinations 15초 rate limit 대응
+        await new Promise(r => setTimeout(r, 3000));
+      }
+    }
+  }
 }
 
 // === Render Book ===
 function renderBookTabs() {
   const tabs = document.getElementById('book-tabs');
   tabs.innerHTML = '';
-  Object.keys(storyData).forEach(k => {
+  const keys = Object.keys(storyData);
+  if (keys.length <= 1) { tabs.style.display = 'none'; return; }
+  tabs.style.display = 'flex';
+  keys.forEach(k => {
     const d = storyData[k];
     const btn = document.createElement('button');
     btn.className = 'book-tab';
@@ -455,13 +586,14 @@ function showBook(key) {
   const d = storyData[key];
   const book = document.getElementById('book');
   book.innerHTML = `
-    <div class="book-page" id="book-page">
+    <div class="book-page cover" id="book-page">
       <div class="book-img">
         <img id="book-img" src="data:${imgType};base64,${imgB64}" />
-        <div class="book-model-tag" id="book-tag">${MODELS[key].name} · ${d.time}초</div>
+        <div class="book-model-tag" id="book-tag">${MODELS[key].name}</div>
       </div>
       <div class="book-txt">
-        <div class="book-title" id="book-title"></div>
+        <div class="book-title" id="book-title">${d.title}</div>
+        <div class="book-subtitle" id="book-subtitle">AI가 만든 동화</div>
         <div class="book-body" id="book-body"></div>
       </div>
     </div>
@@ -477,83 +609,162 @@ function showBook(key) {
 function renderPage() {
   const d = storyData[curModel];
   if (!d) return;
+  const pageEl = document.getElementById('book-page');
   const titleEl = document.getElementById('book-title');
+  const subtitleEl = document.getElementById('book-subtitle');
   const bodyEl = document.getElementById('book-body');
   const infoEl = document.getElementById('page-info');
   const imgEl = document.getElementById('book-img');
+  const tagEl = document.getElementById('book-tag');
 
   if (curPage === 0) {
+    // Cover page
+    pageEl.className = 'book-page cover';
     titleEl.textContent = d.title;
-    bodyEl.textContent = d.pages[0] || '';
-    imgEl.src = `data:${imgType};base64,${imgB64}`; // 표지는 원본 그림
-    document.getElementById('book-tag').textContent = `${MODELS[curModel].name} · 원본`;
+    if (subtitleEl) subtitleEl.style.display = '';
+    bodyEl.textContent = '';
+    imgEl.src = `data:${imgType};base64,${imgB64}`;
+    tagEl.textContent = `${MODELS[curModel].name}`;
   } else {
+    // Inner pages
+    pageEl.className = 'book-page';
     titleEl.textContent = '';
+    if (subtitleEl) subtitleEl.style.display = 'none';
     bodyEl.textContent = d.pages[curPage] || '';
-    
-    // 이미지 동적 생성
+
+    // Pollinations.ai 삽화 표시 (생성 완료 시) / 원본 그림 fallback
     if (d.pageImages[curPage]) {
       imgEl.src = d.pageImages[curPage];
-      document.getElementById('book-tag').textContent = `${MODELS[curModel].name} · AI 삽화`;
+      tagEl.textContent = 'AI 삽화';
     } else {
-      imgEl.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw=='; // 투명 이미지
-      document.getElementById('book-tag').innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:6px"></span> 삽화 생성 중...`;
-      
-      const loadingModel = curModel;
-      const loadingPage = curPage;
+      imgEl.src = `data:${imgType};base64,${imgB64}`;
+      tagEl.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:4px"></span> 삽화 생성 중...`;
+
+      const lm = curModel, lp = curPage;
       generatePageImage(curModel, curPage, d.pages[curPage]).then(url => {
-        if (curModel === loadingModel && curPage === loadingPage) { // 여전히 같은 페이지를 보고 있다면
-          imgEl.src = url;
-          document.getElementById('book-tag').textContent = `${MODELS[curModel].name} · AI 삽화`;
-        }
-      }).catch(err => {
-        if (curModel === loadingModel && curPage === loadingPage) {
-          document.getElementById('book-tag').textContent = `삽화 실패`;
-          log(`[삽화 생성 실패] ${err.message}`, 'error');
-        }
+        if (curModel === lm && curPage === lp) { imgEl.src = url; tagEl.textContent = 'AI 삽화'; }
+      }).catch(() => {
+        if (curModel === lm && curPage === lp) { tagEl.textContent = '원본 그림'; }
       });
     }
   }
 
-  infoEl.textContent = `${curPage+1} / ${d.pages.length}`;
+  infoEl.textContent = curPage === 0 ? '표지' : `— ${curPage} / ${d.pages.length - 1} —`;
   document.getElementById('nav-prev').disabled = curPage === 0;
   document.getElementById('nav-next').disabled = curPage >= d.pages.length - 1;
 }
 
-// === Generate Image ===
+// === Extract Character Sheet from original drawing (once) ===
+async function extractCharacterSheet() {
+  if (!imgB64) return '';
+  const imgUrl = `data:${imgType};base64,${imgB64}`;
+  const body = {
+    model: MODELS.qwen.id,
+    messages: [{ role:'user', content:[
+      { type:'text', text: `Analyze this children's drawing. Output a CHARACTER SHEET in this EXACT format (in English):
+
+CHARACTER: [main character's exact appearance — gender, hair color/length/style, clothing colors and type, body size, any accessories]
+OTHERS: [other characters/animals — species, color, size, features]
+STYLE: [art technique — e.g., crayon/marker/pencil/watercolor, line thickness, color intensity]
+PALETTE: [dominant colors — list 3-5 main colors used]
+BACKGROUND: [setting — e.g., green grass, blue sky, indoor room with yellow walls]
+
+Rules:
+- ONLY describe what you actually SEE. Do NOT invent or guess.
+- Be very specific about colors and shapes.
+- Max 150 words total.` },
+      { type:'image_url', image_url:{ url: imgUrl } }
+    ]}],
+    max_tokens: 300, temperature: 0.2
+  };
+  for (const apiUrl of API_URLS) {
+    try {
+      log('[캐릭터 시트] 원본 그림 분석 중 (로컬 vLLM)...', 'info');
+      const resp = await fetch(apiUrl, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      if (resp.ok) {
+        const data = await resp.json();
+        const result = data.choices?.[0]?.message?.content;
+        if (result) {
+          const sheet = result.substring(0, 500).trim();
+          log(`[캐릭터 시트] ✅ ${sheet.substring(0, 80)}...`, 'success');
+          return sheet;
+        }
+      }
+    } catch(e) { log(`[캐릭터 시트] 실패: ${e.message}`, 'warn'); continue; }
+  }
+  log('[캐릭터 시트] 추출 실패, 기본 모드로 진행', 'warn');
+  return '';
+}
+
+// === Translate Korean → English prompt via VLM ===
+async function translateToImagePrompt(koreanText) {
+  const body = {
+    model: MODELS.qwen.id,
+    messages: [{ role:'user', content:
+      `You are a children's book illustrator. Convert this Korean story text into a short English illustration prompt (max 80 words). Focus on visual elements: characters, objects, colors, background, mood. Use "children's drawing style, bright colors, simple shapes" as the art style.\n\nKorean text:\n${koreanText.substring(0, 400)}`
+    }],
+    max_tokens: 200, temperature: 0.3
+  };
+  for (const apiUrl of API_URLS) {
+    try {
+      const resp = await fetch(apiUrl, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+      if (resp.ok) { const data = await resp.json(); const r = data.choices?.[0]?.message?.content; if (r) { log(`[삽화 프롬프트] ${r.substring(0, 60)}...`, 'info'); return r; } }
+    } catch(e) { continue; }
+  }
+  return null;
+}
+
+// === Generate Image via Pollinations.ai ===
 async function generatePageImage(modelKey, pageIdx, text) {
-  const token = getToken();
-  if (!token) return;
   const d = storyData[modelKey];
-  
-  // prompt: cute children's book illustration style + translated/extracted keywords
-  const prompt = "A cute children's storybook illustration, soft watercolor style, bright colors, vibrant, highly detailed. " + text.substring(0, 300);
-  
+
+  // 1. SCENE 태그에서 프롬프트 추출
+  let prompt = null;
+  if (d.scenes && d.scenes[pageIdx]) {
+    prompt = d.scenes[pageIdx];
+    log(`[삽화] SCENE 사용: ${prompt.substring(0, 50)}...`, 'info');
+  }
+
+  // 2. SCENE 없으면 VLM 번역
+  if (!prompt) { prompt = await translateToImagePrompt(text); }
+
+  // 3. 최종 fallback
+  if (!prompt) { prompt = "A children's drawing illustration, bright colors, simple shapes, cute characters in a cheerful scene"; }
+
+  // 4. 캐릭터 시트 + 스타일 지시어를 앞에 추가 (일관성)
+  if (characterSheet) {
+    prompt = characterSheet + '. Scene: ' + prompt;
+  }
+  // 프롬프트 길이 제한 (Pollinations URL 한계)
+  if (prompt.length > 1500) prompt = prompt.substring(0, 1500);
+
+  // 5. 같은 시드 기반으로 캐릭터 일관성 유지
+  const baseSeed = d._seed || (d._seed = Math.floor(Math.random() * 99999));
+  const seed = baseSeed + pageIdx;
+
   try {
-    const resp = await fetch('https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell', {
+    log(`[삽화] Pollinations.ai 생성 중 (페이지 ${pageIdx})...`, 'info');
+    const resp = await fetch(IMG_GEN_URL, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ inputs: prompt })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, width: 512, height: 512, seed })
     });
-    
+
     if (!resp.ok) {
-      if (resp.status === 503) throw new Error('Model loading');
-      // fallback to SD 3.5
-      const resp2 = await fetch('https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-3.5-large', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ inputs: prompt })
-      });
-      if (!resp2.ok) throw new Error(`HTTP ${resp2.status}`);
-      const blob = await resp2.blob();
+      const errText = await resp.text();
+      log(`[삽화] Pollinations HTTP ${resp.status}: ${errText.substring(0, 100)}`, 'warn');
+      throw new Error(`HTTP ${resp.status}`);
+    }
+
+    const blob = await resp.blob();
+    if (blob.type && blob.type.startsWith('image/')) {
       d.pageImages[pageIdx] = URL.createObjectURL(blob);
+      log(`[삽화] ✅ 페이지 ${pageIdx} 완료`, 'success');
       return d.pageImages[pageIdx];
     }
-    
-    const blob = await resp.blob();
-    d.pageImages[pageIdx] = URL.createObjectURL(blob);
-    return d.pageImages[pageIdx];
+    throw new Error('응답이 이미지가 아님');
   } catch(e) {
+    log(`[삽화] 페이지 ${pageIdx} 실패: ${e.message}`, 'warn');
     throw e;
   }
 }
@@ -570,7 +781,6 @@ function updateCompare() {
   const keys = Object.keys(storyData).filter(k=>!storyData[k].error);
   if (keys.length < 1) { strip.style.display='none'; return; }
   strip.style.display='flex';
-
   const d = storyData[curModel];
   if (!d) return;
   document.getElementById('cmp-time').innerHTML = `<div class="compare-val">${d.time}초</div><div class="compare-lbl">⚡ 응답 시간</div>`;
