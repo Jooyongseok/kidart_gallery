@@ -1,103 +1,48 @@
-# KidArt Gallery — CLAUDE.md
-**Last Updated**: 2026-03-31
+# KidArt Gallery
+**Last Updated**: 2026-04-03
 
 ## Quick Start
 ```bash
-# 백엔드 (FastAPI 멀티 에이전트)
+# 백엔드
 cd /project/ahnailab/jys0207/kidart_gallery/backend
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8200
+ANTHROPIC_API_KEY="your-key" uvicorn main:app --reload --port 8200
 
 # 프론트엔드
 cd /project/ahnailab/jys0207/kidart_gallery
-python3 -m http.server 8080
-# → http://localhost:8080
+python3 -m http.server 8080  # → http://localhost:8080
 ```
 
-## Architecture
-```
-kidart_gallery/
-├── src/          # Vanilla JS SPA (ES Modules, Three.js 3D gallery)
-├── test/         # 로컬 vLLM 테스트 UI (story-test.html)
-└── backend/      # FastAPI + 4 Claude 에이전트 오케스트레이터
-```
+---
 
-### 멀티 에이전트 흐름
-```
-Frontend → POST /api/generate-story
-  1. Security Agent  : 입력 검증 (content_type, template, model_key)
-  2. Modeling Agent  : VLM 분석 → 한국어 동화 생성 → SCENE 태그 파싱
-  3. Modeling Agent  : Pollinations.ai 삽화 URL 생성
-  4. Design Agent    : 레이아웃/테마/애니메이션 제안
-  5. DB Agent        : 결과 저장 (로그인 + artwork_id 있을 때만)
-```
+## Module Map
 
-## Agent Roles
-| 에이전트 | 파일 | Tools | 역할 |
-|---------|------|-------|------|
-| Security | `backend/agents/security_agent.py` | 6 | JWT/bcrypt/XSS/RBAC |
-| DB | `backend/agents/db_agent.py` | 6 | User/Artwork/Story CRUD |
-| Modeling | `backend/agents/modeling_agent.py` | 4 | VLM+스토리+삽화 |
-| Design | `backend/agents/design_agent.py` | 4 | 레이아웃/테마/CSS |
+| 모듈 | 상태 | 서브 CLAUDE.md | 다음 작업 |
+|------|------|---------------|----------|
+| **3D 갤러리** | ✅ 작동 / 개선 중 | `src/pages/gallery3d/CLAUDE.md` | 신규 미술관 템플릿 추가, UX 개선 |
+| **동화책 생성** | ⏳ Mock 상태 | `src/pages/story/CLAUDE.md` | `/storybook` 뷰어 페이지, 페이지 전환 애니메이션 |
+| **캐릭터 3D 변환** | ❌ 미구현 | `src/pages/character3d/CLAUDE.md` | MVP 아키텍처 설계 |
+| **백엔드/DB/보안** | ✅ 완성 / 연동 필요 | `backend/CLAUDE.md` | index.js Provider swap, PostgreSQL 마이그레이션 |
+| **배포** | ❌ | `backend/CLAUDE.md` → Deploy 섹션 | Docker + 서버 설정 |
 
-## Key Conventions
+> 각 모듈 작업 시 해당 서브 CLAUDE.md를 먼저 읽을 것.
 
-### 에이전트 패턴
-- `BaseAgent.run()` : async tool_use 루프, `MAX_TURNS=10`
-- **direct methods** : 오케스트레이터에서 sync 직접 호출 (`hash_password_direct()` 등)
-- **시스템 프롬프트**: XML 구조 `<role>`, `<context>`, `<instructions>`, `<guardrails>`
-- 재시도 전 반성: "무엇이 실패했나? 같은 접근을 반복하고 있지 않나?"
+---
 
-### 백엔드 규칙
-- SQLAlchemy 2.0 — `Mapped[T]` / `mapped_column()` 사용
-- Story.pages_json / scenes_json : `json.dumps(list)` → Text 컬럼
-- DBAgent : per-request 세션 주입 (`DBAgent(db)`)
-- 업로드: `uploads/{uuid}.ext`, 10MB 제한
-- 환경변수: `ANTHROPIC_API_KEY`, `SECRET_KEY`
+## Shared Conventions
 
-### 프론트엔드 규칙
-- ES Modules — `file://` 불가, HTTP 서버 필수
-- Three.js CDN → `typeof THREE === 'undefined'` 체크 후 init
-- AI Provider 교체: `src/services/ai/index.js` L27 한 줄만 수정
+### 라우팅 (Hash SPA)
+- `src/router.js` — 경로 → 핸들러 매핑
+- 각 페이지 모듈은 `init(container)` + `cleanup()` export
 
-## API Endpoints
-| Method | Path | Auth | 담당 에이전트 |
-|--------|------|------|-------------|
-| POST | `/api/generate-story` | 선택 | Security+Modeling+Design+DB |
-| POST | `/api/artworks` | 필수 | Security+DB |
-| GET | `/api/artworks` | 선택 | DB |
-| POST | `/api/auth/login` | — | Security+DB |
-| POST | `/api/auth/register` | — | Security+DB |
-| GET | `/api/stories/{artwork_id}` | 필수 | DB |
-| GET | `/api/health` | — | — |
+### AI Provider 교체
+- `src/services/ai/index.js` L27 한 줄만 수정
+  - Mock (기본): `new MockAIProvider(config)`
+  - 백엔드 연동: `new BackendAIProvider({ baseUrl: 'http://localhost:8200' })`
 
-## Frontend AI Provider Swap
-`src/services/ai/index.js` L27 변경:
-```js
-// MockAIProvider (기본):
-instance = new MockAIProvider(config);
+### ES Modules 규칙
+- `file://` 불가 → 반드시 HTTP 서버 실행 후 접속
+- Three.js CDN → `typeof THREE === 'undefined'` 가드 필수
 
-// BackendAIProvider (백엔드 연동):
-instance = new BackendAIProvider({ baseUrl: 'http://localhost:8200' });
-```
-
-## Local VLM Models (test/ only, :8100)
-- `qwen` → Qwen/Qwen2.5-VL-7B-Instruct
-- `llama` → meta-llama/Llama-3.2-11B-Vision-Instruct
-- `mistral` → mistralai/Pixtral-12B-2409
-
-## Current Status
-| 기능 | 상태 |
-|------|------|
-| 프론트엔드 SPA + 3D 갤러리 | ✅ |
-| 동화 생성 테스트 (vLLM 로컬) | ✅ |
-| FastAPI 멀티 에이전트 백엔드 | ✅ |
-| BackendAIProvider (프론트 연결) | ✅ |
-| 메인앱 ↔ 백엔드 실제 연동 | ⏳ (index.js swap 필요) |
-| SD Turbo 로컬 삽화 연동 | ❌ |
-| PostgreSQL / 프로덕션 배포 | ❌ |
-
-## Important Notes
-- `test/config.js`에 HF 토큰 하드코딩 → push 전 gitignore 확인
-- `backend/uploads/` 및 `*.db` → .gitignore 제외 (런타임 결과물)
-- 에이전트 시스템 프롬프트는 `backend/agents/*.py`의 `SYSTEM_PROMPT` 상수
+### 주의사항
+- `test/config.js` HF 토큰 하드코딩 → push 전 `.gitignore` 확인
+- `backend/uploads/`, `*.db` → 런타임 결과물, gitignore 처리됨
