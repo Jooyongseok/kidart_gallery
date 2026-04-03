@@ -1,5 +1,5 @@
 // ============================================================
-// SPA Hash Router
+// SPA Hash Router — v2 (with page transitions)
 // ============================================================
 const routes = {};
 let currentCleanup = null;
@@ -19,7 +19,6 @@ export function getCurrentRoute() {
 export function initRouter() {
   async function handleRoute() {
     const hash = getCurrentRoute();
-    // Parse path and params: e.g. /artist/1 → path=/artist, param=1
     const parts = hash.split('/').filter(Boolean);
     const basePath = '/' + (parts[0] || '');
     const param = parts[1] || null;
@@ -32,6 +31,8 @@ export function initRouter() {
 
     const handler = routes[basePath] || routes['/'];
     if (handler) {
+      // Scroll to top on route change
+      window.scrollTo(0, 0);
       currentCleanup = await handler(param);
     }
   }

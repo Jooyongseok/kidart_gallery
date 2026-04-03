@@ -1,5 +1,5 @@
 // ============================================================
-// KidArt Gallery — Main Entry Point
+// KidArt Gallery — Main Entry Point v2
 // ============================================================
 import { registerRoute, initRouter } from './router.js';
 import { renderNavbar } from './components/navbar.js';
@@ -13,7 +13,7 @@ import { renderStorybook } from './pages/story/storybook.js';
 // Register routes
 registerRoute('/', () => {
   renderNavbar();
-  renderLanding();
+  return renderLanding();
 });
 
 registerRoute('/login', () => {
