@@ -1,8 +1,11 @@
 // ============================================================
-// Auth Utility — Local Storage based
+// Auth Utility — Local Storage + Backend JWT 지원
 // ============================================================
+import { isBackendMode, getAIService } from '../services/ai/index.js';
+
 const USERS_KEY = 'kidart_users';
 const SESSION_KEY = 'kidart_session';
+const TOKEN_KEY = 'kidart_token';
 
 function getUsers() {
   try {
@@ -16,7 +19,17 @@ function saveUsers(users) {
   localStorage.setItem(USERS_KEY, JSON.stringify(users));
 }
 
-export function register(name, password, role = 'artist') {
+export async function register(name, password, role = 'artist') {
+  if (isBackendMode()) {
+    try {
+      const ai = getAIService();
+      const data = await ai.register(name, password, role);
+      setSession({ id: data.user_id || name, name, role });
+      return { success: true, user: { name, role } };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  }
   const users = getUsers();
   if (users.find(u => u.name === name)) {
     return { success: false, message: '이미 존재하는 이름입니다.' };
@@ -24,7 +37,7 @@ export function register(name, password, role = 'artist') {
   const user = {
     id: Date.now().toString(36),
     name,
-    password, // In production, this would be hashed
+    password,
     role,
     createdAt: new Date().toISOString()
   };
@@ -34,7 +47,17 @@ export function register(name, password, role = 'artist') {
   return { success: true, user };
 }
 
-export function login(name, password) {
+export async function login(name, password) {
+  if (isBackendMode()) {
+    try {
+      const ai = getAIService();
+      const data = await ai.login(name, password);
+      setSession({ id: data.user_id || name, name, role: data.role || 'artist' });
+      return { success: true, user: { name } };
+    } catch (err) {
+      return { success: false, message: err.message };
+    }
+  }
   const users = getUsers();
   const user = users.find(u => u.name === name && u.password === password);
   if (!user) {
@@ -46,6 +69,10 @@ export function login(name, password) {
 
 export function logout() {
   localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(TOKEN_KEY);
+  if (isBackendMode()) {
+    try { getAIService().logout(); } catch {}
+  }
 }
 
 export function getCurrentUser() {
@@ -57,6 +84,9 @@ export function getCurrentUser() {
 }
 
 export function isLoggedIn() {
+  if (isBackendMode()) {
+    return getCurrentUser() !== null && !!localStorage.getItem(TOKEN_KEY);
+  }
   return getCurrentUser() !== null;
 }
 

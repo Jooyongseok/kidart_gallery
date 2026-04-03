@@ -1,9 +1,10 @@
 // ============================================================
 // AI Studio Page
 // ============================================================
-import { getAIService } from '../services/ai/index.js';
+import { getAIService, isBackendMode, setProviderMode } from '../services/ai/index.js';
 import { artists, generatePlaceholderImage } from '../data/sample-data.js';
 import { showToast } from '../components/navbar.js';
+import { navigateTo } from '../router.js';
 
 let currentTab = 'story';
 let uploadedImage = null;
@@ -19,8 +20,13 @@ export function renderAIStudio() {
         <h1 class="ai-studio__title">🤖 AI 스튜디오</h1>
         <p class="ai-studio__subtitle">
           AI로 작품을 동화, 애니메이션, 3D로 변환하세요
-          <span style="display:block; font-size:0.8rem; color:var(--color-text-dim); margin-top:4px;">
+          <span style="display:flex; align-items:center; gap:8px; font-size:0.8rem; color:var(--color-text-dim); margin-top:4px;">
             현재 AI: ${providerInfo.name}
+            <label class="provider-toggle" style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" id="provider-switch" ${isBackendMode() ? 'checked' : ''}
+                style="accent-color:var(--color-primary); cursor:pointer;" />
+              <span style="font-size:0.75rem;">백엔드 연동</span>
+            </label>
           </span>
         </p>
       </div>
@@ -113,6 +119,7 @@ export function renderAIStudio() {
   bindTabEvents();
   bindUploadEvents();
   bindGenerateEvents();
+  bindProviderToggle();
 }
 
 function renderUploadZone(prefix) {
@@ -144,6 +151,17 @@ function renderArtworkSelector(prefix) {
       </select>
     </div>
   `;
+}
+
+function bindProviderToggle() {
+  const toggle = document.getElementById('provider-switch');
+  if (toggle) {
+    toggle.addEventListener('change', () => {
+      setProviderMode(toggle.checked ? 'backend' : 'mock');
+      showToast(`AI 제공자: ${toggle.checked ? 'Backend' : 'Mock'} 모드`, 'success');
+      renderAIStudio();
+    });
+  }
 }
 
 function bindTabEvents() {
@@ -251,14 +269,24 @@ function bindGenerateEvents() {
         const aiService = getAIService();
         const result = await aiService.generateStory(image);
 
+        sessionStorage.setItem('kidart_storybook', JSON.stringify(result));
+
         resultEl.innerHTML = `
           <div class="ai-result__content">
             <h4 style="font-size: 1.2rem; color: var(--color-accent); margin-bottom: var(--space-md);">
               📖 ${result.title}
             </h4>
             <div class="ai-result__story">${result.story}</div>
+            <button class="btn btn--primary btn--block" id="btn-view-storybook" style="margin-top: var(--space-lg);">
+              📚 동화 보기
+            </button>
           </div>
         `;
+
+        document.getElementById('btn-view-storybook')?.addEventListener('click', () => {
+          navigateTo('/storybook');
+        });
+
         showToast('동화가 생성되었습니다!', 'success');
       } catch (err) {
         resultEl.innerHTML = `<p style="color: var(--color-danger);">오류 발생: ${err.message}</p>`;

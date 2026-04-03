@@ -71,23 +71,27 @@ export function renderLogin() {
     });
 
     // Form submit
-    document.getElementById('auth-form').addEventListener('submit', (e) => {
+    document.getElementById('auth-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const name = document.getElementById('auth-name').value.trim();
       const password = document.getElementById('auth-password').value;
       const errorEl = document.getElementById('auth-error');
+      const submitBtn = e.target.querySelector('button[type="submit"]');
 
       if (!name || !password) {
         errorEl.innerHTML = '<p class="form-error">모든 필드를 입력해주세요.</p>';
         return;
       }
 
+      submitBtn.disabled = true;
+      submitBtn.textContent = '처리 중...';
+
       let result;
       if (isLoginMode) {
-        result = login(name, password);
+        result = await login(name, password);
       } else {
         const role = document.getElementById('auth-role')?.value || 'parent';
-        result = register(name, password, role);
+        result = await register(name, password, role);
       }
 
       if (result.success) {
@@ -96,6 +100,8 @@ export function renderLogin() {
         navigateTo('/gallery');
       } else {
         errorEl.innerHTML = `<p class="form-error">${result.message}</p>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = isLoginMode ? '로그인' : '가입하기';
       }
     });
   }

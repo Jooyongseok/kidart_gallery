@@ -67,10 +67,12 @@ export class MockAIProvider extends AIServiceProvider {
     ];
 
     const chosen = stories[Math.floor(Math.random() * stories.length)];
+    const pages = chosen.story.split('\n\n').filter(p => p.trim());
     return {
       title: chosen.title,
       story: chosen.story,
-      illustrations: []
+      pages,
+      illustrations: pages.map(() => null),
     };
   }
 

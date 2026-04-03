@@ -9,10 +9,19 @@
 
 import { MockAIProvider } from './mock-provider.js';
 import { BackendAIProvider } from './backend-provider.js';
-// Future: import { OpenAIProvider } from './openai-provider.js';
-// Future: import { StabilityProvider } from './stability-provider.js';
 
 let instance = null;
+
+const PROVIDER_KEY = 'kidart_provider';
+
+export function isBackendMode() {
+  return localStorage.getItem(PROVIDER_KEY) === 'backend';
+}
+
+export function setProviderMode(mode) {
+  localStorage.setItem(PROVIDER_KEY, mode);
+  resetAIService();
+}
 
 /**
  * Get the AI service instance (singleton)
@@ -21,17 +30,11 @@ let instance = null;
  */
 export function getAIService(config = {}) {
   if (!instance) {
-    // =============================================
-    // CHANGE PROVIDER HERE to swap AI service:
-    //
-    // [현재] Mock (데모용):
-    //   instance = new MockAIProvider(config);
-    //
-    // [백엔드 연동] FastAPI 멀티 에이전트 백엔드 (uvicorn main:app --port 8200):
-    //   instance = new BackendAIProvider({ baseUrl: 'http://localhost:8200' });
-    //
-    // =============================================
-    instance = new MockAIProvider(config);
+    if (isBackendMode()) {
+      instance = new BackendAIProvider({ baseUrl: 'http://localhost:8200' });
+    } else {
+      instance = new MockAIProvider(config);
+    }
   }
   return instance;
 }

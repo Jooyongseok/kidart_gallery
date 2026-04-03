@@ -6,7 +6,7 @@ import { navigateTo } from '../../router.js';
 import { GALLERY_TEMPLATES } from './templates.js';
 import { s, EYE_HEIGHT } from './state.js';
 import { buildGallery } from './scene.js';
-import { setupInputs, animate, removeInputListeners } from './player.js';
+import { setupInputs, animate, removeInputListeners, isMobile } from './player.js';
 
 // ============================================================
 // Render Gallery Page
@@ -52,11 +52,25 @@ export function renderGallery3D() {
         </p>
       </div>
 
+      <div class="gallery3d-fade" id="gallery3d-fade"></div>
+
       <div class="gallery3d-hud" id="gallery3d-hud" style="display:none;">
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 이동</span>
         <span>마우스: 둘러보기</span>
+        <span><kbd>M</kbd> 미니맵</span>
         <span><kbd>ESC</kbd> 메뉴</span>
       </div>
+
+      <canvas id="gallery3d-minimap" class="gallery3d-minimap" width="150" height="150" style="display:none;"></canvas>
+
+      ${isMobile ? `
+        <div id="mobile-joystick" class="mobile-joystick" style="display:none;">
+          <div class="joystick-base">
+            <div class="joystick-knob"></div>
+          </div>
+        </div>
+        <div id="mobile-look-area" class="mobile-look-area" style="display:none;"></div>
+      ` : ''}
 
       <div class="artwork-popup" id="artwork-popup">
         <button class="artwork-popup__close" id="popup-close">\u2715</button>
@@ -121,6 +135,10 @@ function initScene() {
   s.renderer.toneMappingExposure = T.lighting.toneExposure;
 
   s.clock = new THREE.Clock();
+
+  // Setup minimap
+  const minimapCanvas = document.getElementById('gallery3d-minimap');
+  if (minimapCanvas) s.minimapCtx = minimapCanvas.getContext('2d');
 
   buildGallery(T);
   setupInputs(container);
@@ -194,4 +212,5 @@ function cleanup() {
   s.artworkMeshes = [];
   s.colliders = [];
   s.currentTemplate = null;
+  s.minimapCtx = null;
 }
