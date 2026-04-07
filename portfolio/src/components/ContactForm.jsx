@@ -1,15 +1,9 @@
 import { useState } from 'react';
 
 // ─── Formspree Endpoint ──────────────────────────────────────
-// 1. https://formspree.io 가입 (무료 플랜: 50 submissions/월)
-// 2. New Form 생성 → Endpoint URL 복사
-// 3. 아래 PLACEHOLDER를 실제 ID로 교체하거나 .env에 VITE_FORMSPREE_ENDPOINT 설정
+// 본인 폼으로 바꾸려면 https://formspree.io 가입 후 발급받은 ID로 교체
 // ─────────────────────────────────────────────────────────────
-const FORMSPREE_ENDPOINT =
-  import.meta.env.VITE_FORMSPREE_ENDPOINT ||
-  'https://formspree.io/f/mlgoznad';
-
-const PLACEHOLDER = 'https://formspree.io/f/YOUR_FORM_ID';
+const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mlgoznad';
 
 export default function ContactForm() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'sending' | 'success' | 'error'
@@ -17,13 +11,6 @@ export default function ContactForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (FORMSPREE_ENDPOINT === PLACEHOLDER) {
-      setStatus('error');
-      setErrorMsg('Formspree endpoint이 설정되지 않았습니다. ContactForm.jsx 또는 .env 파일을 확인하세요.');
-      return;
-    }
-
     setStatus('sending');
     setErrorMsg('');
 
@@ -56,15 +43,6 @@ export default function ContactForm() {
       <div className="contact__inner">
         <h2 className="section__title">Contact</h2>
         <p className="section__subtitle">메시지를 보내주세요. 빠르게 답변드리겠습니다.</p>
-
-        {FORMSPREE_ENDPOINT === PLACEHOLDER && (
-          <p className="form__notice">
-            ⚠️ <strong>개발 모드</strong>: Formspree endpoint가 설정되지 않았습니다.
-            <br />
-            <code>portfolio/src/components/ContactForm.jsx</code>의 <code>FORMSPREE_ENDPOINT</code>를
-            교체하거나 <code>.env</code>에 <code>VITE_FORMSPREE_ENDPOINT</code>를 설정하세요.
-          </p>
-        )}
 
         <form className="form" onSubmit={handleSubmit}>
           <div className="form__field">
