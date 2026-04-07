@@ -7,7 +7,7 @@ import { useState } from 'react';
 // ─────────────────────────────────────────────────────────────
 const FORMSPREE_ENDPOINT =
   import.meta.env.VITE_FORMSPREE_ENDPOINT ||
-  'https://formspree.io/f/YOUR_FORM_ID';
+  'https://formspree.io/f/mlgoznad';
 
 const PLACEHOLDER = 'https://formspree.io/f/YOUR_FORM_ID';
 
