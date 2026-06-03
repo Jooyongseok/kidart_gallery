@@ -6,7 +6,8 @@ import { navigateTo } from '../../router.js';
 import { GALLERY_TEMPLATES } from './templates.js';
 import { s, EYE_HEIGHT } from './state.js';
 import { buildGallery } from './scene.js';
-import { setupInputs, animate, removeInputListeners, isMobile } from './player.js';
+import { setupInputs, animate, removeInputListeners, isMobile, startTour, stopTour, isTourActive } from './player.js';
+import { stopSlideshow } from './artworks.js';
 
 // ============================================================
 // Render Gallery Page
@@ -59,6 +60,7 @@ export function renderGallery3D() {
         <span>마우스: 둘러보기</span>
         <span><kbd>M</kbd> 미니맵</span>
         <span><kbd>ESC</kbd> 메뉴</span>
+        <button class="btn btn--ghost btn--sm" id="btn-tour" style="margin-left:var(--space-sm);padding:2px 8px;font-size:0.75rem;">🚶 투어</button>
       </div>
 
       <canvas id="gallery3d-minimap" class="gallery3d-minimap" width="150" height="150" style="display:none;"></canvas>
@@ -151,6 +153,20 @@ function initScene() {
   window.addEventListener('resize', s.resizeHandler);
 
   animate();
+
+  // Tour button
+  const tourBtn = document.getElementById('btn-tour');
+  if (tourBtn) {
+    tourBtn.addEventListener('click', () => {
+      if (isTourActive()) {
+        stopTour();
+        tourBtn.textContent = '🚶 투어';
+      } else {
+        startTour();
+        tourBtn.textContent = '⏹ 투어 중지';
+      }
+    });
+  }
 }
 
 // ============================================================
@@ -190,6 +206,7 @@ function rebuildScene() {
 // Cleanup
 // ============================================================
 function cleanup() {
+  stopSlideshow();
   if (s.animationId) { cancelAnimationFrame(s.animationId); s.animationId = null; }
   removeInputListeners();
   if (s.resizeHandler) { window.removeEventListener('resize', s.resizeHandler); s.resizeHandler = null; }

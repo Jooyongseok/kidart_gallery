@@ -6,12 +6,12 @@ import html
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 import datetime
-import os
 from agents.base_agent import BaseAgent
+from config import settings
 
-SECRET_KEY = os.environ.get("JWT_SECRET", "kidart-dev-secret-change-in-prod")
+SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1일
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 

@@ -187,14 +187,16 @@ TOOLS = [
     }
 ]
 
-# vLLM 로컬 서버 (test/run-vllm.sh 실행 필요)
-VLLM_URL = "http://localhost:8100/v1/chat/completions"
+# Gemini API (Gemini 2.5 Flash for vision)
+from config import settings
+
+GEMINI_MODEL = "gemini-2.5-flash-lite"
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={key}"
 
 
 class ModelingAgent(BaseAgent):
-    def __init__(self, vllm_url: str = VLLM_URL):
+    def __init__(self):
         super().__init__(system_prompt=SYSTEM_PROMPT, tools=TOOLS)
-        self.vllm_url = vllm_url
         self._tool_registry = {
             "call_vlm":           self._call_vlm,
             "parse_story":        self._parse_story,
@@ -205,32 +207,36 @@ class ModelingAgent(BaseAgent):
     # ── tool 구현 ──────────────────────────────────────────────
 
     def _call_vlm(self, inputs: dict, _ctx: dict) -> dict:
-        model_id = VLM_MODELS.get(inputs["model_key"], inputs["model_key"])
-        image_mime = inputs.get("image_mime", "image/jpeg")
-        image_url = f"data:{image_mime};base64,{inputs['image_b64']}"
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            return {"error": "GEMINI_API_KEY not set"}
 
+        image_mime = inputs.get("image_mime", "image/jpeg")
+        image_b64 = inputs["image_b64"]
+
+        url = GEMINI_URL.format(model=GEMINI_MODEL, key=api_key)
         payload = {
-            "model": model_id,
-            "messages": [{
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": inputs["prompt"]},
-                    {"type": "image_url", "image_url": {"url": image_url}},
+            "contents": [{
+                "parts": [
+                    {"text": inputs["prompt"]},
+                    {"inline_data": {"mime_type": image_mime, "data": image_b64}},
                 ]
             }],
-            "max_tokens": 2000,
-            "temperature": 0.7,
+            "generationConfig": {
+                "temperature": 0.7,
+                "maxOutputTokens": 2000,
+            }
         }
 
         try:
             with httpx.Client(timeout=120.0) as client:
-                resp = client.post(self.vllm_url, json=payload)
+                resp = client.post(url, json=payload)
                 resp.raise_for_status()
                 data = resp.json()
-                text = data["choices"][0]["message"]["content"]
-                return {"text": text, "model": model_id}
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                return {"text": text, "model": GEMINI_MODEL}
         except httpx.HTTPStatusError as e:
-            return {"error": f"HTTP {e.response.status_code}: {e.response.text[:200]}"}
+            return {"error": f"Gemini HTTP {e.response.status_code}: {e.response.text[:200]}"}
         except Exception as e:
             return {"error": str(e)}
 
@@ -252,8 +258,17 @@ class ModelingAgent(BaseAgent):
             title = lines[0].strip()
             raw = lines[1].strip() if len(lines) > 1 else ""
 
+        # Remove analysis sections (Step 1, Step 2 headers and their content before the story)
+        raw = re.sub(r"^#*\s*Step\s*\d+[^:]*:.*$", "", raw, flags=re.MULTILINE)
+        # Remove markdown headers that are analysis labels
+        raw = re.sub(r"^\*\*Characters?:?\*\*.*$", "", raw, flags=re.MULTILINE)
+        raw = re.sub(r"^\*\*(?:Background|Setting|Objects?|Animals?|Text|Mood|Colors?|Details?)[^*]*\*\*.*$", "", raw, flags=re.MULTILINE)
+        # Remove bullet points that are analysis (start with * and describe drawing elements)
+        raw = re.sub(r"^\*\s+\*\*[^*]+\*\*:?\s*.+$", "", raw, flags=re.MULTILINE)
+        raw = re.sub(r"^-\s+\*\*[^*]+\*\*:?\s*.+$", "", raw, flags=re.MULTILINE)
+
         # 단락 분리
-        raw_pages = [p.strip() for p in re.split(r"\n{2,}", raw) if p.strip()]
+        raw_pages = [p.strip() for p in re.split(r"\n{2,}", raw) if p.strip() and len(p.strip()) > 20]
 
         pages = []
         scenes = []
@@ -301,11 +316,37 @@ class ModelingAgent(BaseAgent):
 
     # ── 편의 메서드 (오케스트레이터용) ──────────────────────────
 
-    def build_prompt(self, template: str, custom_prompt: str = "") -> str:
+    def build_prompt(self, template: str, custom_prompt: str = "",
+                      art_style: str = "", language: str = "ko") -> str:
         if template == "custom":
-            return custom_prompt
-        base = TEMPLATES.get(template, TEMPLATES["default"])
-        return base + SCENE_INSTRUCTION
+            safe_prompt = re.sub(r"\[SCENE[:\s].*?\]", "", custom_prompt, flags=re.IGNORECASE)
+            safe_prompt = safe_prompt[:500]
+            base = safe_prompt
+        else:
+            base = TEMPLATES.get(template, TEMPLATES["default"])
+
+        # Language override
+        lang_map = {"ko": "Korean", "en": "English", "ja": "Japanese"}
+        if language and language != "ko":
+            lang_name = lang_map.get(language, "Korean")
+            base = base.replace("Write in Korean", f"Write in {lang_name}")
+            base = base.replace("한국어", lang_name)
+
+        scene_inst = SCENE_INSTRUCTION
+        # Art style override
+        if art_style:
+            style_map = {
+                "watercolor": "watercolor painting",
+                "crayon": "crayon drawing",
+                "colored_pencil": "colored pencil sketch",
+                "digital_art": "digital art illustration",
+                "pastel": "soft pastel drawing",
+                "oil_painting": "oil painting",
+            }
+            style_desc = style_map.get(art_style, art_style)
+            scene_inst += f"\n- Use '{style_desc}' art style for ALL illustrations instead of matching the original style"
+
+        return base + scene_inst
 
     def parse_story_direct(self, raw_text: str) -> dict:
         return self._parse_story({"raw_text": raw_text}, {})

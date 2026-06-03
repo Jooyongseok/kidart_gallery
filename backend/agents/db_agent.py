@@ -3,7 +3,7 @@ DB Agent — 작품/스토리/유저 데이터 CRUD 전담
 """
 import json
 from sqlalchemy.orm import Session
-from database.models import User, Artwork, Story
+from database.models import User, Artwork, Story, Post, Comment, Like, DirectMessage, Follow
 from agents.base_agent import BaseAgent
 
 SYSTEM_PROMPT = """<role>
@@ -220,3 +220,323 @@ class DBAgent(BaseAgent):
             "pages": pages, "scenes": scenes, "template": template,
             "page_images": page_images or [], "layout_suggestion": layout_suggestion,
         }, {})
+
+    # ── SNS 직접 호출 메서드 ──────────────────────────────────────
+
+    # --- Posts ---
+    def create_post_direct(self, user_id: int, title: str, caption: str,
+                           image_path: str | None = None, color: str = "#8B5CF6") -> dict:
+        post = Post(user_id=user_id, title=title, caption=caption,
+                    image_path=image_path, color=color)
+        self.db.add(post)
+        self.db.commit()
+        self.db.refresh(post)
+        return {"id": post.id, "title": post.title}
+
+    def get_posts_direct(self, limit: int = 30, offset: int = 0, user_id: int | None = None) -> dict:
+        from sqlalchemy.orm import joinedload
+        query = self.db.query(Post).options(
+            joinedload(Post.user),
+            joinedload(Post.likes).joinedload(Like.user),
+            joinedload(Post.comments).joinedload(Comment.user),
+        )
+        if user_id:
+            query = query.filter(Post.user_id == user_id)
+        posts = query.order_by(Post.created_at.desc()).offset(offset).limit(limit).all()
+        result = []
+        for p in posts:
+            sorted_comments = sorted(p.comments, key=lambda c: c.created_at)
+            result.append({
+                "id": p.id,
+                "user_id": p.user_id,
+                "user_name": p.user.username,
+                "user_emoji": p.user.avatar_emoji,
+                "title": p.title,
+                "caption": p.caption,
+                "image_path": p.image_path,
+                "color": p.color,
+                "created_at": p.created_at.isoformat(),
+                "likes": [{"user_id": l.user_id, "user_name": l.user.username} for l in p.likes],
+                "like_count": len(p.likes),
+                "comments": [
+                    {"id": c.id, "user_id": c.user_id, "user_name": c.user.username,
+                     "user_emoji": c.user.avatar_emoji, "text": c.text,
+                     "created_at": c.created_at.isoformat()}
+                    for c in sorted_comments[-5:]
+                ],
+                "comment_count": len(p.comments),
+            })
+        return {"posts": result}
+
+    def delete_post_direct(self, post_id: int, user_id: int) -> dict:
+        post = self.db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return {"error": "post not found"}
+        if post.user_id != user_id:
+            return {"error": "not authorized"}
+        self.db.delete(post)
+        self.db.commit()
+        return {"deleted": True}
+
+    # --- Comments ---
+    def create_comment_direct(self, post_id: int, user_id: int, text: str) -> dict:
+        post = self.db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return {"error": "post not found"}
+        comment = Comment(post_id=post_id, user_id=user_id, text=text)
+        self.db.add(comment)
+        self.db.commit()
+        self.db.refresh(comment)
+        return {"id": comment.id, "text": comment.text, "user_name": comment.user.username}
+
+    def get_comments_direct(self, post_id: int) -> dict:
+        comments = (self.db.query(Comment).filter(Comment.post_id == post_id)
+                    .order_by(Comment.created_at.asc()).all())
+        return {"comments": [
+            {"id": c.id, "user_id": c.user_id, "user_name": c.user.username,
+             "user_emoji": c.user.avatar_emoji, "text": c.text,
+             "created_at": c.created_at.isoformat()}
+            for c in comments
+        ]}
+
+    # --- Likes ---
+    def toggle_like_direct(self, post_id: int, user_id: int) -> dict:
+        post = self.db.query(Post).filter(Post.id == post_id).first()
+        if not post:
+            return {"error": "post not found"}
+        existing = (self.db.query(Like)
+                    .filter(Like.post_id == post_id, Like.user_id == user_id).first())
+        if existing:
+            self.db.delete(existing)
+            self.db.commit()
+            liked = False
+        else:
+            self.db.add(Like(post_id=post_id, user_id=user_id))
+            self.db.commit()
+            liked = True
+        count = self.db.query(Like).filter(Like.post_id == post_id).count()
+        return {"liked": liked, "like_count": count}
+
+    # --- DMs ---
+    def send_dm_direct(self, sender_id: int, receiver_id: int, text: str) -> dict:
+        if sender_id == receiver_id:
+            return {"error": "cannot message yourself"}
+        receiver = self.db.query(User).filter(User.id == receiver_id).first()
+        if not receiver:
+            return {"error": "receiver not found"}
+        dm = DirectMessage(sender_id=sender_id, receiver_id=receiver_id, text=text)
+        self.db.add(dm)
+        self.db.commit()
+        self.db.refresh(dm)
+        return {"id": dm.id, "text": dm.text}
+
+    def get_dm_conversations_direct(self, user_id: int) -> dict:
+        from sqlalchemy import or_, func, case
+        dms = (self.db.query(DirectMessage)
+               .filter(or_(DirectMessage.sender_id == user_id,
+                           DirectMessage.receiver_id == user_id))
+               .order_by(DirectMessage.created_at.desc()).all())
+        convos = {}
+        for dm in dms:
+            other_id = dm.receiver_id if dm.sender_id == user_id else dm.sender_id
+            if other_id not in convos:
+                other = self.db.query(User).filter(User.id == other_id).first()
+                unread = (self.db.query(DirectMessage)
+                          .filter(DirectMessage.sender_id == other_id,
+                                  DirectMessage.receiver_id == user_id,
+                                  DirectMessage.is_read == False).count())
+                convos[other_id] = {
+                    "user_id": other_id,
+                    "user_name": other.username if other else "Unknown",
+                    "user_emoji": other.avatar_emoji if other else "🎨",
+                    "last_message": dm.text[:50],
+                    "last_at": dm.created_at.isoformat(),
+                    "unread": unread,
+                }
+        return {"conversations": sorted(convos.values(), key=lambda c: c["last_at"], reverse=True)}
+
+    def get_dm_messages_direct(self, user_id: int, other_user_id: int) -> dict:
+        from sqlalchemy import or_, and_
+        msgs = (self.db.query(DirectMessage)
+                .filter(or_(
+                    and_(DirectMessage.sender_id == user_id, DirectMessage.receiver_id == other_user_id),
+                    and_(DirectMessage.sender_id == other_user_id, DirectMessage.receiver_id == user_id),
+                ))
+                .order_by(DirectMessage.created_at.asc()).all())
+        return {"messages": [
+            {"id": m.id, "sender_id": m.sender_id, "receiver_id": m.receiver_id,
+             "text": m.text, "is_read": m.is_read, "created_at": m.created_at.isoformat()}
+            for m in msgs
+        ]}
+
+    def mark_dm_read_direct(self, user_id: int, sender_id: int) -> dict:
+        (self.db.query(DirectMessage)
+         .filter(DirectMessage.sender_id == sender_id,
+                 DirectMessage.receiver_id == user_id,
+                 DirectMessage.is_read == False)
+         .update({"is_read": True}))
+        self.db.commit()
+        return {"marked": True}
+
+    # --- User Profile ---
+    def get_user_profile_direct(self, user_id: int) -> dict:
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"error": "user not found"}
+        post_count = self.db.query(Post).filter(Post.user_id == user_id).count()
+        like_count = (self.db.query(Like).join(Post)
+                      .filter(Post.user_id == user_id).count())
+        return {
+            "id": user.id, "username": user.username, "role": user.role,
+            "bio": user.bio, "avatar_emoji": user.avatar_emoji,
+            "post_count": post_count, "like_count": like_count,
+            "created_at": user.created_at.isoformat(),
+        }
+
+    def update_user_profile_direct(self, user_id: int, bio: str | None = None,
+                                    avatar_emoji: str | None = None) -> dict:
+        user = self.db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"error": "user not found"}
+        if bio is not None:
+            user.bio = bio
+        if avatar_emoji is not None:
+            user.avatar_emoji = avatar_emoji
+        self.db.commit()
+        self.db.refresh(user)
+        return {"id": user.id, "username": user.username, "bio": user.bio,
+                "avatar_emoji": user.avatar_emoji}
+
+    def get_all_users_direct(self, limit: int = 50) -> dict:
+        users = self.db.query(User).filter(User.is_active == True).limit(limit).all()
+        return {"users": [
+            {"id": u.id, "username": u.username, "avatar_emoji": u.avatar_emoji, "bio": u.bio}
+            for u in users
+        ]}
+
+    # --- Follow ---
+    def toggle_follow_direct(self, follower_id: int, following_id: int) -> dict:
+        if follower_id == following_id:
+            return {"error": "cannot follow yourself"}
+        target = self.db.query(User).filter(User.id == following_id).first()
+        if not target:
+            return {"error": "user not found"}
+        existing = (self.db.query(Follow)
+                    .filter(Follow.follower_id == follower_id, Follow.following_id == following_id).first())
+        if existing:
+            self.db.delete(existing)
+            self.db.commit()
+            following = False
+        else:
+            self.db.add(Follow(follower_id=follower_id, following_id=following_id))
+            self.db.commit()
+            following = True
+        follower_count = self.db.query(Follow).filter(Follow.following_id == following_id).count()
+        following_count = self.db.query(Follow).filter(Follow.follower_id == follower_id).count()
+        return {"following": following, "follower_count": follower_count, "following_count": following_count}
+
+    def get_followers_direct(self, user_id: int) -> dict:
+        follows = self.db.query(Follow).filter(Follow.following_id == user_id).all()
+        return {"followers": [
+            {"id": f.follower.id, "username": f.follower.username, "avatar_emoji": f.follower.avatar_emoji}
+            for f in follows
+        ]}
+
+    def get_following_direct(self, user_id: int) -> dict:
+        follows = self.db.query(Follow).filter(Follow.follower_id == user_id).all()
+        return {"following": [
+            {"id": f.following.id, "username": f.following.username, "avatar_emoji": f.following.avatar_emoji}
+            for f in follows
+        ]}
+
+    def is_following_direct(self, follower_id: int, following_id: int) -> dict:
+        exists = (self.db.query(Follow)
+                  .filter(Follow.follower_id == follower_id, Follow.following_id == following_id).first())
+        return {"is_following": exists is not None}
+
+    # --- Stories ---
+    def save_story_with_user_direct(self, user_id: int, vlm_model: str, title: str,
+                                     pages: list, scenes: list, template: str = "default",
+                                     page_images: list | None = None, layout_suggestion: str | None = None,
+                                     artwork_id: int | None = None) -> dict:
+        story = Story(
+            artwork_id=artwork_id,
+            user_id=user_id,
+            template=template,
+            vlm_model=vlm_model,
+            title=title,
+            pages_json=json.dumps(pages, ensure_ascii=False),
+            scenes_json=json.dumps(scenes, ensure_ascii=False),
+            page_images_json=json.dumps(page_images or [], ensure_ascii=False),
+            layout_suggestion=layout_suggestion,
+        )
+        self.db.add(story)
+        self.db.commit()
+        self.db.refresh(story)
+        return {"id": story.id, "title": story.title}
+
+    def get_user_stories_direct(self, user_id: int, limit: int = 20) -> dict:
+        stories = (self.db.query(Story)
+                   .filter(Story.user_id == user_id)
+                   .order_by(Story.created_at.desc()).limit(limit).all())
+        return {"stories": [
+            {"id": s.id, "title": s.title, "template": s.template, "vlm_model": s.vlm_model,
+             "pages": json.loads(s.pages_json), "scenes": json.loads(s.scenes_json),
+             "page_images": json.loads(s.page_images_json) if s.page_images_json else [],
+             "created_at": s.created_at.isoformat()}
+            for s in stories
+        ]}
+
+    def get_story_by_id_direct(self, story_id: int) -> dict:
+        s = self.db.query(Story).filter(Story.id == story_id).first()
+        if not s:
+            return {"error": "story not found"}
+        return {
+            "id": s.id, "title": s.title, "template": s.template, "vlm_model": s.vlm_model,
+            "pages": json.loads(s.pages_json), "scenes": json.loads(s.scenes_json),
+            "page_images": json.loads(s.page_images_json) if s.page_images_json else [],
+            "layout_suggestion": s.layout_suggestion,
+            "created_at": s.created_at.isoformat(),
+        }
+
+    def update_story_direct(self, story_id: int, pages: list | None = None,
+                            scenes: list | None = None) -> dict:
+        s = self.db.query(Story).filter(Story.id == story_id).first()
+        if not s:
+            return {"error": "story not found"}
+        if pages is not None:
+            s.pages_json = json.dumps(pages, ensure_ascii=False)
+        if scenes is not None:
+            s.scenes_json = json.dumps(scenes, ensure_ascii=False)
+        self.db.commit()
+        self.db.refresh(s)
+        return {"id": s.id, "title": s.title}
+
+    def get_following_posts_direct(self, user_id: int, limit: int = 30) -> dict:
+        following_ids = [f.following_id for f in
+                         self.db.query(Follow).filter(Follow.follower_id == user_id).all()]
+        if not following_ids:
+            return {"posts": []}
+        from sqlalchemy import or_
+        query = self.db.query(Post).filter(Post.user_id.in_(following_ids))
+        posts = query.order_by(Post.created_at.desc()).limit(limit).all()
+        result = []
+        for p in posts:
+            likes = self.db.query(Like).filter(Like.post_id == p.id).all()
+            comments = self.db.query(Comment).filter(Comment.post_id == p.id).order_by(Comment.created_at.asc()).all()
+            result.append({
+                "id": p.id, "user_id": p.user_id, "user_name": p.user.username,
+                "user_emoji": p.user.avatar_emoji, "title": p.title, "caption": p.caption,
+                "image_path": p.image_path, "color": p.color,
+                "created_at": p.created_at.isoformat(),
+                "likes": [{"user_id": l.user_id, "user_name": l.user.username} for l in likes],
+                "like_count": len(likes),
+                "comments": [
+                    {"id": c.id, "user_id": c.user_id, "user_name": c.user.username,
+                     "user_emoji": c.user.avatar_emoji, "text": c.text,
+                     "created_at": c.created_at.isoformat()}
+                    for c in comments[-5:]
+                ],
+                "comment_count": len(comments),
+            })
+        return {"posts": result}

@@ -9,6 +9,10 @@ import { renderGallery3D } from './pages/gallery3d/index.js';
 import { renderArtists } from './pages/artist.js';
 import { renderAIStudio } from './pages/ai-studio.js';
 import { renderStorybook } from './pages/story/storybook.js';
+import { renderSNS } from './pages/sns.js';
+import { renderCharacterGallery } from './pages/character/index.js';
+import { renderCharacterExtract } from './pages/character/extract.js';
+import { renderExperimentLab } from './pages/experiment.js';
 
 // Register routes
 registerRoute('/', () => {
@@ -39,6 +43,26 @@ registerRoute('/ai-studio', () => {
 registerRoute('/storybook', () => {
   renderNavbar();
   return renderStorybook();
+});
+
+registerRoute('/sns', () => {
+  renderNavbar();
+  return renderSNS();
+});
+
+registerRoute('/characters', () => {
+  renderNavbar();
+  return renderCharacterGallery();
+});
+
+registerRoute('/character-extract', () => {
+  renderNavbar();
+  return renderCharacterExtract();
+});
+
+registerRoute('/experiment', () => {
+  renderNavbar();
+  return renderExperimentLab();
 });
 
 // Initialize router

@@ -51,8 +51,8 @@ export function renderLogin() {
           </form>
 
           ${isLoginMode ? `
-            <p style="margin-top: var(--space-lg); font-size: 0.82rem; color: var(--color-text-dim);">
-              데모 계정: 아무 이름/비밀번호로 회원가입 후 이용하세요
+            <p style="margin-top: var(--space-lg); font-size: 0.82rem; color: var(--text-muted);">
+              계정이 없으신가요? 위에서 회원가입 탭을 눌러주세요
             </p>
           ` : ''}
         </div>
@@ -80,6 +80,16 @@ export function renderLogin() {
 
       if (!name || !password) {
         errorEl.innerHTML = '<p class="form-error">모든 필드를 입력해주세요.</p>';
+        return;
+      }
+
+      if (name.length < 2 || name.length > 50) {
+        errorEl.innerHTML = '<p class="form-error">이름은 2~50자 사이여야 합니다.</p>';
+        return;
+      }
+
+      if (!isLoginMode && password.length < 6) {
+        errorEl.innerHTML = '<p class="form-error">비밀번호는 6자 이상이어야 합니다.</p>';
         return;
       }
 

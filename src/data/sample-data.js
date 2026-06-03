@@ -84,6 +84,21 @@ export const artists = [
       { id: 'a6-2', title: '도시의 밤', description: '화려한 네온사인이 빛나는 야경', date: '2026-02-28', color: '#3b82f6' },
       { id: 'a6-3', title: '음악이 보여요', description: '음표와 멜로디를 색으로 표현한 그림', date: '2026-03-11', color: '#ec4899' },
     ]
+  },
+  {
+    id: 'artist-7',
+    name: '양선우',
+    age: 9,
+    emoji: '🌟',
+    bio: '상상력이 풍부한 꿈꾸는 아이. 판타지와 우주를 좋아합니다.',
+    artworks: [
+      { id: 'a7-1', title: '꿈꾸는 나무', description: '마법의 문과 창문이 있는 거대한 나무', date: '2026-03-15', color: '#10B981' },
+      { id: 'a7-2', title: '은하수 고래', description: '우주를 헤엄치는 신비한 고래', date: '2026-03-18', color: '#6366F1' },
+      { id: 'a7-3', title: '사탕 집', description: '온갖 사탕과 과자로 만든 달콤한 집', date: '2026-03-20', color: '#F472B6' },
+      { id: 'a7-4', title: '구름 기차', description: '구름 위를 달리는 무지개 기차', date: '2026-03-22', color: '#38BDF8' },
+      { id: 'a7-5', title: '공룡 학교', description: '공룡들이 공부하는 재미있는 학교', date: '2026-03-25', color: '#FB923C' },
+      { id: 'a7-6', title: '오로라의 밤', description: '북극에서 본 환상적인 오로라', date: '2026-03-28', color: '#34D399' },
+    ]
   }
 ];
 

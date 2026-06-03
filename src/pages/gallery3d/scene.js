@@ -18,9 +18,15 @@ function buildRoom(T) {
   const { width: W, depth: D, height: H } = T.room;
   const C = T.colors;
 
-  // Floor with procedural texture
+  // Floor with procedural texture + realistic reflections
   const floorTex = createFloorTexture(T.floorType || 'marble', C.floor);
-  const floorMat = new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.7, metalness: 0.03 });
+  const isMarble = (T.floorType || 'marble').includes('marble');
+  const floorMat = isMarble
+    ? new THREE.MeshPhysicalMaterial({
+        map: floorTex, roughness: 0.25, metalness: 0.05,
+        reflectivity: 0.6, clearcoat: 0.3, clearcoatRoughness: 0.2,
+      })
+    : new THREE.MeshStandardMaterial({ map: floorTex, roughness: 0.7, metalness: 0.03 });
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), floorMat);
   floor.rotation.x = -Math.PI / 2;
   floor.receiveShadow = true;
@@ -36,9 +42,13 @@ function buildRoom(T) {
   ceil.position.y = H;
   s.scene.add(ceil);
 
-  // Walls with subtle grain
+  // Walls with subtle grain + bump effect
   const wallTex = createWallTexture(C.wall);
-  const wallMat = new THREE.MeshStandardMaterial({ map: wallTex, roughness: 0.6, metalness: 0.02 });
+  const wallBumpTex = createWallTexture(C.wall); // reuse as bump map for subtle depth
+  const wallMat = new THREE.MeshStandardMaterial({
+    map: wallTex, roughness: 0.55, metalness: 0.02,
+    bumpMap: wallBumpTex, bumpScale: 0.005,
+  });
   addWall(W, H, 0, H / 2, -D / 2, 0, wallMat);
   addWall(W, H, 0, H / 2, D / 2, Math.PI, wallMat);
   addWall(D, H, -W / 2, H / 2, 0, Math.PI / 2, wallMat);
@@ -250,6 +260,116 @@ function buildTemplateDecorations(T, W, D, H, C) {
     sun.rotation.x = Math.PI / 2;
     sun.position.set(W * 0.2, H - 0.02, -D * 0.2);
     s.scene.add(sun);
+  }
+
+  // ── Space Museum ──
+  if (key === 'space') {
+    // Stars on ceiling
+    const starMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 0.8 });
+    for (let i = 0; i < 80; i++) {
+      const star = new THREE.Mesh(new THREE.SphereGeometry(0.03 + Math.random() * 0.04, 6, 6), starMat);
+      star.position.set(
+        (Math.random() - 0.5) * (W - 2),
+        H - 0.1 - Math.random() * 1.5,
+        (Math.random() - 0.5) * (D - 2),
+      );
+      s.scene.add(star);
+    }
+    // Glowing ring fixtures
+    const ringMat = new THREE.MeshStandardMaterial({ color: 0x4488ff, emissive: 0x4488ff, emissiveIntensity: 0.3, side: THREE.DoubleSide });
+    for (let i = 0; i < 3; i++) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.04, 8, 32), ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(0, H - 0.5, -D / 2 + 5 + i * (D - 10) / 2);
+      s.scene.add(ring);
+    }
+    // Floating asteroids
+    const asteroidMat = new THREE.MeshStandardMaterial({ color: 0x3a3a5a, roughness: 0.8 });
+    for (let i = 0; i < 6; i++) {
+      const asteroid = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.3, 0), asteroidMat);
+      asteroid.position.set(
+        (Math.random() - 0.5) * (W - 6),
+        1.5 + Math.random() * 3,
+        (Math.random() - 0.5) * (D - 6),
+      );
+      asteroid.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0);
+      s.scene.add(asteroid);
+    }
+  }
+
+  // ── Underwater Gallery ──
+  if (key === 'underwater') {
+    // Bubble particles
+    const bubbleMat = new THREE.MeshStandardMaterial({ color: 0x80d0ff, transparent: true, opacity: 0.2, roughness: 0.1, metalness: 0.3 });
+    for (let i = 0; i < 40; i++) {
+      const bubble = new THREE.Mesh(new THREE.SphereGeometry(0.08 + Math.random() * 0.12, 8, 8), bubbleMat);
+      bubble.position.set(
+        (Math.random() - 0.5) * (W - 4),
+        Math.random() * H,
+        (Math.random() - 0.5) * (D - 4),
+      );
+      s.scene.add(bubble);
+    }
+    // Coral pillars
+    const coralColors = [0xff6060, 0xff8040, 0xff60a0, 0xd060ff];
+    coralColors.forEach((col, i) => {
+      const coralMat = new THREE.MeshStandardMaterial({ color: col, roughness: 0.7 });
+      const coral = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.3, 1.5 + Math.random(), 8), coralMat);
+      const cx = (i % 2 === 0 ? -1 : 1) * (W / 2 - 1.5);
+      const cz = -D / 2 + 4 + i * (D - 8) / 3;
+      coral.position.set(cx, 0.75, cz);
+      s.scene.add(coral);
+      addCollider(cx - 0.5, cx + 0.5, cz - 0.5, cz + 0.5);
+    });
+    // Caustic light effect on floor
+    const causticMat = new THREE.MeshStandardMaterial({ color: 0x30a0c0, emissive: 0x30a0c0, emissiveIntensity: 0.08, transparent: true, opacity: 0.15 });
+    for (let i = 0; i < 8; i++) {
+      const caustic = new THREE.Mesh(new THREE.CircleGeometry(1 + Math.random(), 12), causticMat);
+      caustic.rotation.x = -Math.PI / 2;
+      caustic.position.set((Math.random() - 0.5) * (W - 4), 0.007, (Math.random() - 0.5) * (D - 4));
+      s.scene.add(caustic);
+    }
+  }
+
+  // ── Forest Gallery ──
+  if (key === 'forest') {
+    // Tree trunk pillars
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5a3820, roughness: 0.85 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x3a8a3a, roughness: 0.7 });
+    const treePositions = [
+      [-W / 2 + 1.2, -D * 0.3], [W / 2 - 1.2, -D * 0.3],
+      [-W / 2 + 1.2, 0], [W / 2 - 1.2, 0],
+      [-W / 2 + 1.2, D * 0.3], [W / 2 - 1.2, D * 0.3],
+    ];
+    treePositions.forEach(([tx, tz]) => {
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.22, H, 10), trunkMat);
+      trunk.position.set(tx, H / 2, tz); trunk.castShadow = true;
+      s.scene.add(trunk);
+      const canopy = new THREE.Mesh(new THREE.SphereGeometry(1.5, 10, 10), leafMat);
+      canopy.position.set(tx, H + 0.5, tz); canopy.castShadow = true;
+      s.scene.add(canopy);
+      addCollider(tx - 0.5, tx + 0.5, tz - 0.5, tz + 0.5);
+    });
+    // Leaf particles on floor
+    const leafParticleMat = new THREE.MeshStandardMaterial({ color: 0x6aaa4a, side: THREE.DoubleSide, roughness: 0.9 });
+    for (let i = 0; i < 20; i++) {
+      const leaf = new THREE.Mesh(new THREE.CircleGeometry(0.06, 5), leafParticleMat);
+      leaf.rotation.x = -Math.PI / 2 + (Math.random() - 0.5) * 0.3;
+      leaf.rotation.z = Math.random() * Math.PI;
+      leaf.position.set((Math.random() - 0.5) * (W - 4), 0.01, (Math.random() - 0.5) * (D - 4));
+      s.scene.add(leaf);
+    }
+    // Fireflies (glowing dots)
+    const fireflyMat = new THREE.MeshStandardMaterial({ color: 0xffff80, emissive: 0xffff60, emissiveIntensity: 0.6 });
+    for (let i = 0; i < 12; i++) {
+      const firefly = new THREE.Mesh(new THREE.SphereGeometry(0.04, 6, 6), fireflyMat);
+      firefly.position.set(
+        (Math.random() - 0.5) * (W - 4),
+        1 + Math.random() * 2,
+        (Math.random() - 0.5) * (D - 4),
+      );
+      s.scene.add(firefly);
+    }
   }
 }
 

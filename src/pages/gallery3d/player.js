@@ -9,6 +9,38 @@ const _hoverVec = new THREE.Vector2(0, 0);
 const _hoverRay = new THREE.Raycaster();
 export const isMobile = 'ontouchstart' in window && window.innerWidth < 1024;
 
+// Tour mode state
+let _tourActive = false;
+let _tourWaypoints = [];
+let _tourCurrentIdx = 0;
+let _tourProgress = 0;
+let _tourPauseTimer = 0;
+const TOUR_SPEED = 1.5;
+const TOUR_PAUSE = 3.0;
+
+export function startTour() {
+  if (s.artworkMeshes.length === 0) return;
+  _tourWaypoints = s.artworkMeshes
+    .filter(m => m.position)
+    .map(m => {
+      const dir = m.position.clone().normalize().multiplyScalar(-2);
+      return new THREE.Vector3(m.position.x + dir.x, EYE_HEIGHT, m.position.z + dir.z);
+    });
+  if (_tourWaypoints.length === 0) return;
+  _tourActive = true;
+  _tourCurrentIdx = 0;
+  _tourProgress = 0;
+  _tourPauseTimer = 0;
+  s.isLocked = false;
+  document.exitPointerLock?.();
+}
+
+export function stopTour() {
+  _tourActive = false;
+}
+
+export function isTourActive() { return _tourActive; }
+
 // ─── Setup all input handlers ───────────────────────────────
 export function setupInputs(container) {
   const overlay = document.getElementById('gallery3d-overlay');
@@ -224,6 +256,36 @@ export function animate() {
   if (!s.currentTemplate) return;
 
   const delta = Math.min(s.clock.getDelta(), 0.05);
+
+  // Tour mode
+  if (_tourActive && _tourWaypoints.length > 0) {
+    const target = _tourWaypoints[_tourCurrentIdx];
+    if (_tourPauseTimer > 0) {
+      _tourPauseTimer -= delta;
+    } else {
+      _tourProgress += TOUR_SPEED * delta;
+      const prev = _tourCurrentIdx > 0 ? _tourWaypoints[_tourCurrentIdx - 1] : s.camera.position.clone();
+      const t = Math.min(_tourProgress, 1);
+      s.camera.position.lerpVectors(prev, target, t);
+      // Look at artwork
+      const artwork = s.artworkMeshes[_tourCurrentIdx];
+      if (artwork) {
+        const lookTarget = artwork.position.clone();
+        lookTarget.y = EYE_HEIGHT;
+        s.camera.lookAt(lookTarget);
+      }
+      if (t >= 1) {
+        _tourPauseTimer = TOUR_PAUSE;
+        _tourProgress = 0;
+        _tourCurrentIdx++;
+        if (_tourCurrentIdx >= _tourWaypoints.length) {
+          _tourActive = false;
+        }
+      }
+    }
+    s.renderer.render(s.scene, s.camera);
+    return;
+  }
 
   if (s.isLocked) {
     _dir.set(0, 0, 0);
